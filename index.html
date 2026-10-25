@@ -308,7 +308,44 @@
             border-radius: 4px;
         }
     </style>
+    <style id="tes-mobile-login-fix">
+      /* Login is its own page: no stage navigation before authentication. */
+      html { height: auto; min-height: 100%; overflow-x: hidden; overflow-y: auto; }
+      body { height: auto; min-height: 100dvh; overflow-x: hidden; overflow-y: auto;
+             display: flex; align-items: flex-start; justify-content: center;
+             padding: max(16px, env(safe-area-inset-top)) 12px max(24px, env(safe-area-inset-bottom)); }
+      .login-card { width: 100%; max-width: 420px; margin: auto 0;
+                    padding: 24px 20px 20px; animation: none; }
+      .bg-orb { pointer-events: none; }
+      @media (max-width: 480px) {
+        .login-card { padding: 20px 18px 18px; border-radius: 22px; }
+        .logo-icon { margin-bottom: 10px; }
+        .app-title { margin-bottom: 4px; }
+        .app-subtitle { margin-bottom: 18px; }
+        .form-group { margin-bottom: 14px; }
+        .dots { margin-top: 12px; }
+      }
+      @media (max-height: 700px) {
+        .login-card { margin: 0; }
+        .logo-icon { transform: scale(.85); transform-origin: center; }
+      }
+    </style>
     <link rel="manifest" href="manifest.json">
+<style id="tes-login-viewport-final-fix">
+html, body { height:auto !important; min-height:100% !important; overflow-x:hidden !important; overflow-y:auto !important; }
+body { display:block !important; min-height:100dvh !important; padding:12px 12px 28px !important; -webkit-overflow-scrolling:touch; }
+.login-card { width:100% !important; max-width:420px !important; margin:0 auto !important; padding:18px 18px 22px !important; }
+.logo-icon { width:58px !important; height:58px !important; font-size:30px !important; margin-bottom:8px !important; }
+.app-title { font-size:1.55rem !important; margin-bottom:2px !important; }
+.app-subtitle { margin-bottom:14px !important; }
+.form-group { margin-bottom:10px !important; }
+.form-label { margin-bottom:4px !important; }
+.form-input-styled { padding:11px 14px !important; min-height:46px !important; }
+.btn-login { margin-top:6px !important; padding:13px !important; min-height:48px !important; }
+.link-teacher { display:inline-block; margin-top:14px !important; }
+.dots { margin-top:8px !important; }
+@media (max-height:740px) { .login-card { padding-top:12px !important; } .app-subtitle { margin-bottom:9px !important; } }
+</style>
 </head>
 
 <body>
@@ -546,13 +583,12 @@
     </script>
 
     <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('service-worker.js')
-                    .then(reg => console.log('SW registered'))
-                    .catch(err => console.log('SW registration failed: ', err));
-            });
-        }
+      // Test deployment: avoid serving a stale preview from an older service worker.
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(registrations =>
+          registrations.forEach(reg => reg.unregister())
+        ).catch(() => {});
+      }
     </script>
 </body>
 
