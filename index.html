@@ -433,13 +433,22 @@ body { display:block !important; min-height:100dvh !important; padding:12px 12px
         let foundStudent = null;
         let currentAcademyData = null;
 
-        // 1차 수정: 지점 이름으로 기존 Supabase 학원 레코드를 매칭합니다.
+        // Resolve the selected branch against existing academy records without creating or modifying DB data.
         async function lookupBranch(name) {
             const client = await getSupabase();
-            if (!client) return null;
-            const {data,error} = await client.from('academies').select('id,name,code').ilike('name', '%'+name+'%').limit(2);
-            if (error || !data || data.length !== 1) return null;
-            return data[0];
+            if (!client) throw new Error('Supabase 연결에 실패했습니다.');
+            const { data, error } = await client.from('academies').select('id,name,code').limit(500);
+            if (error) throw new Error('지점 조회 실패: ' + (error.message || error.code));
+            const normalized = value => String(value || '').replace(/\s+/g, '').toLowerCase();
+            const wanted = normalized(name).replace(/점$/, '');
+            const matches = (data || []).filter(row => {
+                const label = normalized(row.name).replace(/점$/, '');
+                const code = normalized(row.code);
+                return label === wanted || label.endsWith(wanted) || label.includes(wanted + '점') || code === wanted;
+            });
+            if (matches.length === 1) return matches[0];
+            if (!matches.length) throw new Error('선택한 ' + name + ' 지점이 DB에 없습니다. 등록된 지점명: ' + ((data || []).map(x => x.name).filter(Boolean).join(', ') || '없음'));
+            throw new Error(name + ' 지점이 중복 등록되어 있습니다. 관리자 확인이 필요합니다.');
         }
 
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
@@ -450,9 +459,12 @@ body { display:block !important; min-height:100dvh !important; padding:12px 12px
             const pin = document.getElementById('studentPin').value;
             if (pin !== '1234') { showToast('비밀번호를 확인해주세요', 'error'); return; }
             if (!branch) { showToast('지점을 선택해주세요', 'error'); return; }
-            currentAcademyData = await lookupBranch(branch);
-            if (!currentAcademyData) {
-                showToast('해당 지점을 찾지 못했습니다. 학원 데이터 연결을 확인해주세요.', 'error'); return;
+            try {
+                currentAcademyData = await lookupBranch(branch);
+            } catch (err) {
+                console.error('Branch lookup failed:', err);
+                showToast(err.message || '지점 조회 오류', 'error');
+                return;
             }
 
             if (!name) {
@@ -472,6 +484,7 @@ body { display:block !important; min-height:100dvh !important; padding:12px 12px
 
                 hideLoading();
 
+                if (error) throw new Error(error.message || String(error));
                 if (student && student.academy_id === currentAcademyData.id) {
                     foundStudent = student;
                     showConfirmModal(student);
@@ -481,7 +494,7 @@ body { display:block !important; min-height:100dvh !important; padding:12px 12px
             } catch (err) {
                 console.error('❌ Login error:', err);
                 hideLoading();
-                showToast('로그인 실패', 'error');
+                showToast('로그인 실패: ' + (err.message || String(err)), 'error');
             }
         });
 
