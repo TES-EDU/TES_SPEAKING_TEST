@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>학생 로그인 - TES Speaking</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" sizes="32x32" href="../favicon.png">
+    <link rel="apple-touch-icon" href="../favicon.png">
+    <link rel="manifest" href="../manifest.json">
+</head>
+
+<body>
+    <div class="landing-container">
+        <div class="glass-card">
+            <a href="../index.html" class="back-btn">
+                <span>←</span>
+                <span>돌아가기</span>
+            </a>
+
+            <div class="logo-section">
+                <div class="logo-icon">📚</div>
+                <h1 class="app-title">학생 입장</h1>
+                <p class="app-subtitle">정보를 입력하고 시작하세요</p>
+            </div>
+
+            <form id="studentForm" class="student-form">
+                <div class="form-group">
+                    <label class="form-label">이름</label>
+                    <input type="text" id="studentName" class="form-input" placeholder="이름을 입력하세요" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">학년</label>
+                    <select id="studentGrade" class="form-select" required>
+                        <option value="">학년을 선택하세요</option>
+                        <option value="초등 1학년">초등 1학년</option>
+                        <option value="초등 2학년">초등 2학년</option>
+                        <option value="초등 3학년">초등 3학년</option>
+                        <option value="초등 4학년">초등 4학년</option>
+                        <option value="초등 5학년">초등 5학년</option>
+                        <option value="초등 6학년">초등 6학년</option>
+                        <option value="중등 1학년">중등 1학년</option>
+                        <option value="중등 2학년">중등 2학년</option>
+                        <option value="중등 3학년">중등 3학년</option>
+                        <option value="고등 1학년">고등 1학년</option>
+                        <option value="고등 2학년">고등 2학년</option>
+                        <option value="고등 3학년">고등 3학년</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block btn-lg">
+                    시작하기 →
+                </button>
+            </form>
+        </div>
+
+        <div class="background-shapes">
+            <div class="shape shape-1"></div>
+            <div class="shape shape-2"></div>
+            <div class="shape shape-3"></div>
+        </div>
+    </div>
+
+    <script src="../js/supabase.js"></script>
+    <script>
+        document.getElementById('studentForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const name = document.getElementById('studentName').value.trim();
+            const grade = document.getElementById('studentGrade').value;
+
+            if (!name || !grade) {
+                showToast('모든 정보를 입력해주세요', 'error');
+                return;
+            }
+
+            showLoading('로그인 중...');
+
+            try {
+                // Try to find existing student
+                let { data: student, error } = await findStudent(name, grade);
+                console.log('🔍 Find student result:', { student, error });
+
+                if (!student) {
+                    // Create new student
+                    console.log('📝 Creating new student...');
+                    const result = await createStudent(name, grade);
+                    student = result.data;
+                    error = result.error;
+                    console.log('📝 Create student result:', { student, error });
+                }
+
+                if (error || !student) {
+                    console.error('❌ Student creation/lookup failed:', error);
+                    hideLoading();
+                    showToast('학생 등록에 실패했습니다. 네트워크를 확인 후 다시 시도해주세요.', 'error');
+                    return;
+                }
+
+                console.log('✅ Final student:', student);
+                setCurrentStudent(student);
+                hideLoading();
+                window.location.href = 'problems.html';
+            } catch (err) {
+                console.error('❌ Login error:', err);
+                hideLoading();
+                showToast('로그인에 실패했습니다. 다시 시도해주세요.', 'error');
+            }
+        });
+    </script>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('../service-worker.js')
+                    .then(reg => console.log('SW registered'))
+                    .catch(err => console.log('SW registration failed: ', err));
+            });
+        }
+    </script>
+</body>
+
+</html>

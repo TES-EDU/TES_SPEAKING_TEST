@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>학습반 관리 - TES Speaking</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+    <style>
+        .add-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--sp-2);
+            width: 100%;
+            padding: var(--sp-4);
+            background: var(--primary-pale);
+            border: 2px dashed var(--primary);
+            border-radius: var(--radius-lg);
+            color: var(--primary);
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: var(--sp-5);
+        }
+
+        .add-btn:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        .class-list {
+            display: flex;
+            flex-direction: column;
+            gap: var(--sp-3);
+        }
+
+        .class-card {
+            background: var(--bg-white);
+            border-radius: var(--radius-lg);
+            padding: var(--sp-4);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .class-header {
+            display: flex;
+            align-items: center;
+            gap: var(--sp-3);
+            margin-bottom: var(--sp-3);
+        }
+
+        .class-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius-md);
+            background: var(--teacher-pale);
+            color: var(--teacher);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: var(--text-lg);
+        }
+
+        .class-info {
+            flex: 1;
+        }
+
+        .class-name {
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+
+        .class-meta {
+            font-size: var(--text-xs);
+            color: var(--text-muted);
+        }
+
+        .class-actions {
+            display: flex;
+            gap: var(--sp-2);
+        }
+
+        .action-btn {
+            padding: var(--sp-2);
+            border-radius: var(--radius-md);
+            border: none;
+            cursor: pointer;
+            background: var(--bg-light);
+            color: var(--text-muted);
+        }
+
+        .action-btn:hover {
+            background: var(--primary-pale);
+            color: var(--primary);
+        }
+
+        .action-btn.delete:hover {
+            background: var(--wrong-pale);
+            color: var(--wrong);
+        }
+
+        .student-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--sp-1);
+        }
+
+        .student-tag {
+            padding: var(--sp-1) var(--sp-3);
+            background: var(--bg-light);
+            border-radius: var(--radius-full);
+            font-size: var(--text-xs);
+            color: var(--text-muted);
+        }
+
+        .student-tag.add {
+            background: var(--primary-pale);
+            color: var(--primary);
+            cursor: pointer;
+        }
+
+        .class-toggle-header {
+            display: flex;
+            align-items: center;
+            gap: var(--sp-3);
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .toggle-chevron {
+            transition: transform 0.3s ease;
+            font-size: var(--text-lg);
+            color: var(--text-muted);
+        }
+
+        .toggle-chevron.open {
+            transform: rotate(90deg);
+        }
+
+        .class-students-panel {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.35s ease;
+        }
+
+        .class-students-panel.open {
+            max-height: 2000px;
+        }
+
+        .student-row {
+            display: flex;
+            align-items: center;
+            gap: var(--sp-3);
+            padding: var(--sp-3) var(--sp-4);
+            margin-top: 1px;
+            background: var(--bg-light);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .student-row:first-child {
+            margin-top: var(--sp-3);
+        }
+
+        .student-row:hover {
+            background: var(--primary-pale);
+        }
+
+        .student-row .student-avatar-sm {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--primary-pale);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            color: var(--primary);
+            font-size: var(--text-sm);
+            flex-shrink: 0;
+        }
+
+        .student-row .student-row-info {
+            flex: 1;
+        }
+
+        .student-row .student-row-name {
+            font-weight: 600;
+            color: var(--text-dark);
+            font-size: var(--text-sm);
+        }
+
+        .student-row .student-row-meta {
+            font-size: var(--text-xs);
+            color: var(--text-muted);
+        }
+
+        .student-row .view-arrow {
+            color: var(--text-muted-soft);
+            font-size: var(--text-lg);
+        }
+
+        .recording-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--sp-1);
+            padding: 2px var(--sp-2);
+            border-radius: var(--radius-full);
+            font-size: var(--text-xs);
+            font-weight: 600;
+        }
+
+        .recording-badge.has-recording {
+            background: var(--correct-pale);
+            color: var(--correct-dark);
+        }
+
+        .recording-badge.no-recording {
+            background: var(--wrong-pale);
+            color: var(--wrong);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(4px);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--bg-white);
+            border-radius: var(--radius-xl);
+            padding: var(--sp-6);
+            box-shadow: var(--shadow-lg);
+            animation: t-slide-up 0.3s var(--ease);
+            width: 90%;
+            max-width: 400px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--sp-5);
+        }
+
+        .modal-title {
+            font-size: var(--text-lg);
+            font-weight: 700;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: var(--text-2xl);
+            cursor: pointer;
+            color: var(--text-muted);
+        }
+
+        .form-group {
+            margin-bottom: var(--sp-4);
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: var(--sp-1);
+            font-weight: 500;
+            color: var(--text-dark);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: var(--sp-3);
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius-md);
+            font-size: var(--text-base);
+            font-family: inherit;
+        }
+
+        .student-checkbox-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: var(--sp-2);
+        }
+
+        .student-checkbox {
+            display: flex;
+            align-items: center;
+            gap: var(--sp-2);
+            padding: var(--sp-2);
+            cursor: pointer;
+        }
+
+        .student-checkbox:hover {
+            background: var(--bg-light);
+            border-radius: var(--radius-md);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: var(--sp-10);
+            color: var(--text-muted);
+        }
+    </style>
+    <link rel="icon" type="image/png" sizes="32x32" href="../favicon.png">
+    <link rel="apple-touch-icon" href="../favicon.png">
+    <link rel="manifest" href="../manifest.json">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <a href="dashboard.html" class="back-btn"><i class="ti ti-arrow-left"></i></a>
+            <h1 class="header-title">학습반 관리</h1>
+            <div style="width: 40px;"></div>
+        </header>
+
+        <div class="content-area" style="padding-bottom: 20px;">
+            <!-- Add Button -->
+            <button class="add-btn" onclick="showAddModal()">
+                <i class="ti ti-plus"></i> 학습반 추가
+            </button>
+
+            <!-- Class List -->
+            <div class="class-list" id="classList">
+                <div class="empty-state">
+                    <i class="ti ti-loader" style="font-size: 2rem; animation: spin 1s linear infinite;"></i>
+                    <p>불러오는 중...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Modal -->
+    <div class="modal" id="addModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">학습반 추가</h3>
+                <button class="close-btn" onclick="hideAddModal()">&times;</button>
+            </div>
+            <form id="addForm">
+                <div class="form-group">
+                    <label class="form-label">학습반 이름</label>
+                    <input type="text" id="className" class="form-input" placeholder="예: A지역 초등, B지역 중등" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">학생 선택</label>
+                    <div class="student-checkbox-list" id="studentCheckboxList">
+                        <div style="text-align: center; padding: 20px; color: var(--text-gray);">
+                            학생 불러오는 중...
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block">추가</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div class="modal" id="editModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="editModalTitle">학생 편집</h3>
+                <button class="close-btn" onclick="hideEditModal()">&times;</button>
+            </div>
+            <div class="student-checkbox-list" id="editStudentList"></div>
+            <button class="btn btn-primary btn-block" style="margin-top: 16px;" onclick="saveStudents()">저장</button>
+        </div>
+    </div>
+
+    <script src="../js/supabase.js"></script>
+    <script>
+        let allStudents = [];
+        let allClasses = [];
+        let editingClassId = null;
+        let studentRecordings = {};
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadData();
+
+            document.getElementById('addForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                await addClass();
+            });
+        });
+
+        async function loadData() {
+            await Promise.all([loadStudents(), loadClasses()]);
+            // Load recordings after students are loaded
+            await loadAllRecordings();
+            renderClasses();
+        }
+
+        async function loadAllRecordings() {
+            try {
+                const client = await getSupabase();
+                if (!client) return;
+                for (const student of allStudents) {
+                    const { data: files } = await client
+                        .storage
+                        .from('recordings')
+                        .list(student.id, { limit: 100 });
+                    const recs = (files || []).filter(f => f.name.endsWith('.webm'));
+                    studentRecordings[student.id] = recs;
+                }
+            } catch (e) {
+                console.error('Load recordings error:', e);
+            }
+        }
+
+        async function loadStudents() {
+            try {
+                const { data: students, error } = await getStudents();
+                if (error) console.error('Load students error:', error);
+                allStudents = (students || []).sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+                renderStudentCheckboxes();
+            } catch (err) {
+                console.error('Load error:', err);
+            }
+        }
+
+        async function loadClasses() {
+            try {
+                const client = await getSupabase();
+                if (!client) {
+                    renderClasses();
+                    return;
+                }
+
+                const { data: classes, error } = await client
+                    .from('classes')
+                    .select('*')
+                    .order('name');
+
+                if (error) {
+                    console.log('Classes error:', error);
+                    allClasses = [];
+                } else {
+                    allClasses = classes || [];
+                }
+
+                renderClasses();
+            } catch (err) {
+                console.error('Load classes error:', err);
+                allClasses = [];
+                renderClasses();
+            }
+        }
+
+        function renderStudentCheckboxes(containerId = 'studentCheckboxList', selectedIds = []) {
+            const container = document.getElementById(containerId);
+
+            if (allStudents.length === 0) {
+                container.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-gray);">등록된 학생이 없습니다</div>';
+                return;
+            }
+
+            container.innerHTML = allStudents.map(s => `
+                <label class="student-checkbox">
+                    <input type="checkbox" value="${s.id}" ${selectedIds.includes(s.id) ? 'checked' : ''}>
+                    <span>${s.name}</span>
+                    <span style="color: var(--text-light); font-size: 0.75rem;">${s.grade || ''}</span>
+                </label>
+            `).join('');
+        }
+
+        function renderClasses() {
+            const container = document.getElementById('classList');
+
+            if (allClasses.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="ti ti-school" style="font-size: 3rem; color: var(--text-light);"></i>
+                        <p>등록된 학습반이 없습니다</p>
+                        <p style="font-size: 0.85rem;">위에서 학습반을 추가하세요</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = allClasses.map(c => {
+                const studentIds = c.student_ids || [];
+                const classStudents = studentIds.map(id => {
+                    return allStudents.find(s => s.id === id);
+                }).filter(Boolean);
+
+                return `
+                    <div class="class-card">
+                        <div class="class-toggle-header" onclick="toggleClass('${c.id}')">
+                            <i class="ti ti-chevron-right toggle-chevron" id="chevron-${c.id}"></i>
+                            <div class="class-icon">
+                                <i class="ti ti-school"></i>
+                            </div>
+                            <div class="class-info">
+                                <div class="class-name">${c.name}</div>
+                                <div class="class-meta">${studentIds.length}명의 학생</div>
+                            </div>
+                            <div class="class-actions" onclick="event.stopPropagation();">
+                                <button class="action-btn" onclick="editClass('${c.id}')" title="편집">
+                                    <i class="ti ti-edit"></i>
+                                </button>
+                                <button class="action-btn delete" onclick="deleteClass('${c.id}')" title="삭제">
+                                    <i class="ti ti-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="class-students-panel" id="panel-${c.id}">
+                            ${classStudents.length === 0 ? 
+                                '<div style="padding: 16px; text-align: center; color: var(--text-gray); font-size: 0.85rem;"><i class="ti ti-users-minus"></i> 배정된 학생이 없습니다</div>' :
+                                classStudents.map(s => {
+                                    const recs = studentRecordings[s.id] || [];
+                                    const hasRecording = recs.length > 0;
+                                    return `
+                                    <div class="student-row" onclick="viewStudent('${s.id}', '${s.name}')">
+                                        <div class="student-avatar-sm">${s.name.charAt(0)}</div>
+                                        <div class="student-row-info">
+                                            <div class="student-row-name">${s.name}</div>
+                                            <div class="student-row-meta">
+                                                ${s.grade || ''}
+                                                <span class="recording-badge ${hasRecording ? 'has-recording' : 'no-recording'}" style="margin-left: 4px;">
+                                                    <i class="ti ti-${hasRecording ? 'video' : 'video-off'}"></i>
+                                                    녹화 ${recs.length}개
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <i class="ti ti-chevron-right view-arrow"></i>
+                                    </div>
+                                `;
+                                }).join('')
+                            }
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function showAddModal() {
+            document.getElementById('addModal').classList.add('show');
+            renderStudentCheckboxes();
+        }
+
+        function toggleClass(classId) {
+            const panel = document.getElementById(`panel-${classId}`);
+            const chevron = document.getElementById(`chevron-${classId}`);
+            if (panel && chevron) {
+                panel.classList.toggle('open');
+                chevron.classList.toggle('open');
+            }
+        }
+
+        function viewStudent(studentId, studentName) {
+            sessionStorage.setItem('viewingStudentId', studentId);
+            sessionStorage.setItem('viewingStudentName', studentName);
+            window.location.href = 'student-recordings.html';
+        }
+
+        function hideAddModal() {
+            document.getElementById('addModal').classList.remove('show');
+            document.getElementById('addForm').reset();
+        }
+
+        async function addClass() {
+            const name = document.getElementById('className').value.trim();
+            const checkboxes = document.querySelectorAll('#studentCheckboxList input[type="checkbox"]:checked');
+            const studentIds = Array.from(checkboxes).map(cb => cb.value);
+
+            if (!name) {
+                showToast('학습반 이름을 입력해주세요', 'error');
+                return;
+            }
+
+            try {
+                const client = await getSupabase();
+                if (!client) {
+                    showToast('데이터베이스 연결 실패', 'error');
+                    return;
+                }
+
+                const { data, error } = await client
+                    .from('classes')
+                    .insert([{
+                        name: name,
+                        type: 'group', // 통합 타입
+                        student_ids: studentIds
+                    }])
+                    .select()
+                    .single();
+
+                if (error) throw error;
+
+                showToast('학습반이 추가되었습니다', 'success');
+                hideAddModal();
+                await loadClasses();
+            } catch (err) {
+                console.error('Add class error:', err);
+                showToast('추가 실패: ' + (err.message || err), 'error');
+            }
+        }
+
+        function editClass(id) {
+            editingClassId = id;
+            const classData = allClasses.find(c => c.id === id);
+            if (!classData) return;
+
+            document.getElementById('editModalTitle').textContent = `${classData.name} - 학생 편집`;
+            renderStudentCheckboxes('editStudentList', classData.student_ids || []);
+            document.getElementById('editModal').classList.add('show');
+        }
+
+        function hideEditModal() {
+            document.getElementById('editModal').classList.remove('show');
+            editingClassId = null;
+        }
+
+        async function saveStudents() {
+            if (!editingClassId) return;
+
+            const checkboxes = document.querySelectorAll('#editStudentList input[type="checkbox"]:checked');
+            const studentIds = Array.from(checkboxes).map(cb => cb.value);
+
+            try {
+                const client = await getSupabase();
+                const { error } = await client
+                    .from('classes')
+                    .update({ student_ids: studentIds })
+                    .eq('id', editingClassId);
+
+                if (error) throw error;
+
+                showToast('저장되었습니다', 'success');
+                hideEditModal();
+                await loadClasses();
+            } catch (err) {
+                console.error('Save error:', err);
+                showToast('저장 실패', 'error');
+            }
+        }
+
+        async function deleteClass(id) {
+            if (!confirm('이 학습반을 삭제하시겠습니까?')) return;
+
+            try {
+                const client = await getSupabase();
+                const { error } = await client.from('classes').delete().eq('id', id);
+
+                if (error) throw error;
+
+                showToast('삭제되었습니다', 'success');
+                await loadClasses();
+            } catch (err) {
+                console.error('Delete error:', err);
+                showToast('삭제 실패', 'error');
+            }
+        }
+    </script>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('../service-worker.js')
+                    .then(reg => console.log('SW registered'))
+                    .catch(err => console.log('SW registration failed: ', err));
+            });
+        }
+    </script>
+</body>
+
+</html>

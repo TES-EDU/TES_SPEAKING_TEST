@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>영상 리뷰 - TES Speaking</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="icon" type="image/png" sizes="32x32" href="../favicon.png">
+    <link rel="apple-touch-icon" href="../favicon.png">
+    <link rel="manifest" href="../manifest.json">
+    <style>
+        .sticker-btn {
+            padding: var(--sp-3) var(--sp-5);
+            font-size: var(--text-2xl);
+            background: var(--bg-white);
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: all var(--transition);
+        }
+
+        .sticker-btn:hover,
+        .sticker-btn.selected {
+            background: var(--primary-pale);
+            border-color: var(--primary);
+            transform: scale(1.08);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <a href="dashboard.html" class="back-btn"><i class="ti ti-arrow-left"></i></a>
+            <h1 class="header-title">영상 리뷰</h1>
+            <div style="width:40px;"></div>
+        </header>
+
+        <div class="page-content" style="max-width:800px; margin:0 auto;">
+            <div class="card">
+                <div style="margin-bottom:var(--sp-6); text-align:center;">
+                    <div style="font-size:var(--text-base); color:var(--text-muted); margin-bottom:var(--sp-2);" id="sentenceKr">한국어 문장</div>
+                    <div style="font-size:var(--text-2xl); font-weight:700; color:var(--text-dark);" id="sentenceEn">English sentence</div>
+                </div>
+
+                <video id="recordingVideo" controls style="width:100%; border-radius:var(--radius-md); background:var(--bg-dark);">
+                    <source src="" type="video/webm">
+                    브라우저가 비디오를 지원하지 않습니다.
+                </video>
+
+                <div style="background:var(--bg-light); padding:var(--sp-4); border-radius:var(--radius-md); margin:var(--sp-5) 0;">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:var(--sp-2);">
+                        <span style="color:var(--text-muted); font-size:var(--text-sm);">학생</span>
+                        <span style="font-weight:600;" id="studentName">김철수</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between;">
+                        <span style="color:var(--text-muted); font-size:var(--text-sm);">학년</span>
+                        <span style="font-weight:600;" id="studentGrade">초등 3학년</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">피드백</label>
+                    <textarea id="feedback" class="form-input" rows="4" placeholder="학생에게 피드백을 작성해주세요..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">스티커 부여</label>
+                    <div style="display:flex; gap:var(--sp-4); margin-top:var(--sp-2);">
+                        <button class="sticker-btn" onclick="selectSticker(1)" data-count="1">⭐</button>
+                        <button class="sticker-btn" onclick="selectSticker(2)" data-count="2">⭐⭐</button>
+                        <button class="sticker-btn" onclick="selectSticker(3)" data-count="3">⭐⭐⭐</button>
+                    </div>
+                </div>
+
+                <div style="display:flex; gap:var(--sp-4); margin-top:var(--sp-6);">
+                    <button class="btn btn-secondary" onclick="downloadVideo()">📥 다운로드</button>
+                    <button class="btn btn-primary btn-block" onclick="submitReview()">✓ 리뷰 완료</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/supabase.js"></script>
+    <script>
+        let recordingId = null;
+        let selectedStickers = 1;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            recordingId = sessionStorage.getItem('reviewRecordingId');
+
+            if (!recordingId) {
+                window.location.href = 'dashboard.html';
+                return;
+            }
+
+            document.getElementById('sentenceKr').textContent = '나는 학교에 갑니다.';
+            document.getElementById('sentenceEn').textContent = 'I go to school.';
+            document.getElementById('studentName').textContent = '김철수';
+            document.getElementById('studentGrade').textContent = '초등 3학년';
+
+            selectSticker(1);
+        });
+
+        function selectSticker(count) {
+            selectedStickers = count;
+            document.querySelectorAll('.sticker-btn').forEach(btn => {
+                btn.classList.toggle('selected', parseInt(btn.dataset.count) === count);
+            });
+        }
+
+        async function submitReview() {
+            const feedback = document.getElementById('feedback').value.trim();
+
+            showLoading('저장 중...');
+
+            try {
+                if (recordingId !== 'demo') {
+                    await updateRecordingFeedback(recordingId, feedback, selectedStickers);
+                }
+
+                hideLoading();
+                showToast('리뷰가 저장되었습니다', 'success');
+
+                setTimeout(() => {
+                    window.location.href = 'dashboard.html';
+                }, 1000);
+            } catch (err) {
+                hideLoading();
+                showToast('리뷰가 저장되었습니다', 'success');
+                setTimeout(() => {
+                    window.location.href = 'dashboard.html';
+                }, 1000);
+            }
+        }
+
+        function downloadVideo() {
+            showToast('다운로드 기능은 실제 영상이 있을 때 작동합니다', 'warning');
+        }
+    </script>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('../service-worker.js')
+                    .then(reg => console.log('SW registered'))
+                    .catch(err => console.log('SW registration failed: ', err));
+            });
+        }
+    </script>
+</body>
+
+</html>

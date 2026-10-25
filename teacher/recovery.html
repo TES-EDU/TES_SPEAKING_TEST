@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>녹화 복구 도구 - TES Speaking</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <style>
+        .recovery-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: var(--sp-5);
+        }
+
+        .page-header {
+            display: flex;
+            align-items: center;
+            gap: var(--sp-3);
+            margin-bottom: var(--sp-6);
+            padding-bottom: var(--sp-4);
+            border-bottom: 2px solid var(--border);
+        }
+
+        .page-header h1 { font-size: var(--text-xl); font-weight: 700; }
+        .page-header .back-link { color: var(--text-muted); text-decoration: none; font-size: var(--text-2xl); }
+
+        .status-banner {
+            padding: var(--sp-4) var(--sp-5);
+            border-radius: var(--radius-lg);
+            margin-bottom: var(--sp-5);
+            font-size: var(--text-sm);
+        }
+
+        .status-banner.scanning { background: #EFF6FF; color: #1D4ED8; border: 1px solid #BFDBFE; }
+        .status-banner.found    { background: var(--accent-orange-pale); color: #92400E; border: 1px solid #FDE68A; }
+        .status-banner.success  { background: var(--correct-pale); color: var(--correct-dark); border: 1px solid #BBF7D0; }
+        .status-banner.empty    { background: var(--correct-pale); color: var(--correct-dark); border: 1px solid #BBF7D0; }
+
+        .orphan-card {
+            background: var(--bg-white);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border);
+            margin-bottom: var(--sp-4);
+            overflow: hidden;
+            box-shadow: var(--shadow-xs);
+        }
+
+        .orphan-header {
+            padding: var(--sp-4) var(--sp-5);
+            background: var(--accent-orange-pale);
+            border-bottom: 1px solid #FED7AA;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .orphan-header .folder-name { font-weight: 600; color: #9A3412; font-size: var(--text-sm); font-family: monospace; }
+        .orphan-header .file-count { font-size: var(--text-xs); color: #C2410C; background: #FFEDD5; padding: 2px var(--sp-2); border-radius: var(--radius-full); }
+
+        .orphan-files { padding: var(--sp-4) var(--sp-5); }
+
+        .file-row {
+            display: flex;
+            align-items: flex-start;
+            gap: var(--sp-3);
+            padding: var(--sp-3) 0;
+            border-bottom: 1px solid var(--border-soft);
+        }
+
+        .file-row:last-child { border-bottom: none; }
+
+        .file-preview {
+            width: 140px; min-width: 140px;
+            aspect-ratio: 16/9;
+            background: var(--bg-dark);
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .file-preview video { width: 100%; height: 100%; object-fit: cover; }
+
+        .file-preview .play-overlay {
+            position: absolute; inset: 0;
+            display: flex; align-items: center; justify-content: center;
+            background: rgba(0,0,0,0.3);
+            transition: opacity var(--transition);
+        }
+
+        .file-preview .play-overlay i { font-size: 2rem; color: white; }
+        .file-preview:hover .play-overlay { opacity: 0; }
+
+        .file-info { flex: 1; }
+        .file-name { font-weight: 500; font-size: var(--text-sm); color: var(--text-dark); }
+
+        .file-parsed { font-size: var(--text-xs); color: var(--text-muted); margin-top: 2px; }
+        .file-parsed .detected-name { color: var(--teacher); font-weight: 600; }
+
+        .assign-select {
+            padding: var(--sp-2) var(--sp-3);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            font-size: var(--text-sm);
+            font-family: inherit;
+            min-width: 150px;
+            background: var(--bg-white);
+        }
+
+        .assign-select:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 3px var(--primary-pale); }
+
+        .action-bar {
+            position: sticky; bottom: 0;
+            background: var(--bg-white);
+            padding: var(--sp-4) var(--sp-5);
+            border-top: 1px solid var(--border);
+            display: flex; gap: var(--sp-3);
+            justify-content: flex-end;
+            box-shadow: 0 -4px 12px rgba(0,0,0,0.05);
+        }
+
+        .btn-recover {
+            padding: var(--sp-3) var(--sp-6);
+            background: linear-gradient(135deg, var(--primary-mid) 0%, var(--primary-dark) 100%);
+            color: white; border: none;
+            border-radius: var(--radius-md);
+            font-size: var(--text-sm); font-weight: 600;
+            cursor: pointer; font-family: inherit;
+        }
+
+        .btn-recover:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .btn-delete-file {
+            padding: var(--sp-1) var(--sp-2);
+            background: var(--wrong-pale); color: var(--wrong-dark);
+            border: none; border-radius: 6px;
+            font-size: var(--text-xs); cursor: pointer;
+            font-family: inherit; white-space: nowrap;
+            transition: background var(--transition);
+        }
+
+        .btn-delete-file:hover { background: #FECACA; }
+
+        .log-area {
+            margin-top: var(--sp-4);
+            padding: var(--sp-3) var(--sp-4);
+            background: var(--bg-dark);
+            color: var(--text-muted-soft);
+            border-radius: var(--radius-md);
+            font-family: monospace;
+            font-size: var(--text-xs);
+            max-height: 200px;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .log-area .log-success { color: #4ADE80; }
+        .log-area .log-error   { color: #F87171; }
+        .log-area .log-info    { color: #60A5FA; }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+
+<body>
+    <div class="recovery-container">
+        <div class="page-header">
+            <a href="dashboard.html" class="back-link">←</a>
+            <div>
+                <h1>🔧 녹화 복구 도구</h1>
+                <p style="font-size:var(--text-sm); color:var(--text-muted); margin-top:var(--sp-1);">
+                    잘못된 폴더에 저장된 녹화를 올바른 학생에게 연결합니다
+                </p>
+            </div>
+        </div>
+
+        <div id="statusBanner" class="status-banner scanning">
+            <i class="ti ti-loader" style="animation:spin 1s linear infinite;"></i>
+            스캔 중... Storage에서 고아 폴더를 찾고 있습니다
+        </div>
+
+        <div id="orphanList"></div>
+
+        <div id="actionBar" class="action-bar" style="display:none;">
+            <button class="btn-recover" id="recoverBtn" onclick="startRecovery()">
+                <i class="ti ti-arrows-transfer-down"></i> 선택한 녹화 복구하기
+            </button>
+        </div>
+
+        <div class="log-area" id="logArea"></div>
+    </div>
+
+    <script src="../js/supabase.js"></script>
+    <script>
+        let allStudents = [];
+        let orphanFolders = [];
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const { data: session } = await getTeacherSession();
+            if (!session || !session.user) { window.location.href = 'login.html'; return; }
+            const academy = getCurrentAcademy();
+            if (!academy) { window.location.href = 'academy-setup.html'; return; }
+            await scanStorage();
+        });
+
+        async function scanStorage() {
+            const client = await getSupabase();
+            if (!client) return;
+
+            const { data: students } = await getStudents();
+            allStudents = students || [];
+            const studentIds = new Set(allStudents.map(s => s.id));
+
+            const { data: folders, error } = await client.storage.from('recordings').list('', { limit: 500 });
+
+            if (error) { updateStatus('error', '❌ Storage 스캔 실패: ' + error.message); return; }
+
+            orphanFolders = [];
+
+            for (const folder of folders) {
+                if (folder.id !== null && folder.name.includes('.')) continue;
+                const folderId = folder.name;
+                if (studentIds.has(folderId)) continue;
+
+                const { data: files } = await client.storage.from('recordings').list(folderId, { limit: 100 });
+                if (!files || files.length === 0) continue;
+
+                const webmFiles = files.filter(f => f.name.endsWith('.webm'));
+                if (webmFiles.length === 0) continue;
+
+                const parsedFiles = webmFiles.map(f => {
+                    const parsed = parseFileName(f.name);
+                    return { name: f.name, path: `${folderId}/${f.name}`, created_at: f.created_at, ...parsed };
+                });
+
+                orphanFolders.push({ folderId, files: parsedFiles, isNumericId: /^\d+$/.test(folderId) });
+            }
+
+            if (orphanFolders.length === 0) {
+                updateStatus('empty', '✅ 고아 녹화가 없습니다! 모든 녹화가 올바른 학생에게 연결되어 있습니다.');
+                document.getElementById('orphanList').innerHTML = '';
+            } else {
+                const totalFiles = orphanFolders.reduce((sum, f) => sum + f.files.length, 0);
+                updateStatus('found', `⚠️ ${orphanFolders.length}개의 고아 폴더에서 ${totalFiles}개의 녹화를 발견했습니다.`);
+                renderOrphans();
+                document.getElementById('actionBar').style.display = 'flex';
+            }
+        }
+
+        function parseFileName(filename) {
+            const name = filename.replace('.webm', '');
+            const parts = name.split('_');
+            let studentName = parts[0] || '알 수 없음';
+            let unitInfo = '', dateStr = '';
+
+            if (parts.length >= 4) { unitInfo = parts[1]; dateStr = parts[2] + '_' + parts[3]; }
+            else if (parts.length === 3) { unitInfo = parts[1]; dateStr = parts[2]; }
+
+            let displayDate = dateStr;
+            const dateMatch = dateStr.match(/(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})/);
+            if (dateMatch) displayDate = `${dateMatch[1]}-${dateMatch[2]}-${dateMatch[3]} ${dateMatch[4]}:${dateMatch[5]}`;
+
+            return { studentName, unitInfo, displayDate };
+        }
+
+        function renderOrphans() {
+            const container = document.getElementById('orphanList');
+            const studentOptions = allStudents
+                .sort((a, b) => a.name.localeCompare(b.name, 'ko'))
+                .map(s => `<option value="${s.id}">${s.name} (${s.grade || '학년 미설정'})</option>`)
+                .join('');
+
+            let html = '';
+            for (const orphan of orphanFolders) {
+                const folderLabel = orphan.isNumericId
+                    ? `🔴 임시 ID: ${orphan.folderId}`
+                    : `🟡 미등록 ID: ${orphan.folderId.substring(0, 20)}...`;
+
+                html += `
+                <div class="orphan-card" data-folder="${orphan.folderId}">
+                    <div class="orphan-header">
+                        <span class="folder-name">${folderLabel}</span>
+                        <span class="file-count">${orphan.files.length}개 파일</span>
+                    </div>
+                    <div class="orphan-files">
+                        <div style="margin-bottom:var(--sp-3);">
+                            <label style="font-size:var(--text-sm); font-weight:600; color:var(--text-dark);">
+                                이 폴더의 모든 녹화를 다음 학생에게 연결:
+                            </label>
+                            <select class="assign-select folder-assign" data-folder="${orphan.folderId}"
+                                    style="width:100%; margin-top:var(--sp-1); padding:var(--sp-3);">
+                                <option value="">-- 학생 선택 --</option>
+                                <option value="__new__">➕ 새 학생으로 등록</option>
+                                ${studentOptions}
+                            </select>
+                            <input type="text" class="new-student-name" data-folder="${orphan.folderId}"
+                                   placeholder="새 학생 이름 입력"
+                                   style="display:none; width:100%; margin-top:var(--sp-1); padding:var(--sp-2) var(--sp-3); border:1px solid var(--border); border-radius:var(--radius-md); font-family:inherit;">
+                        </div>
+                        ${orphan.files.map(f => {
+                            const videoUrl = getFilePublicUrl(f.path);
+                            return `
+                        <div class="file-row" id="file-${f.path.replace(/[\W]/g, '_')}">
+                            <div class="file-preview" onclick="togglePreview(this)">
+                                <video preload="metadata" muted>
+                                    <source src="${videoUrl}" type="video/webm">
+                                </video>
+                                <div class="play-overlay"><i class="ti ti-player-play"></i></div>
+                            </div>
+                            <div class="file-info">
+                                <div class="file-name">${f.name}</div>
+                                <div class="file-parsed">
+                                    감지된 이름: <span class="detected-name">${f.studentName}</span>
+                                    ${f.unitInfo ? ' · ' + f.unitInfo : ''}
+                                    ${f.displayDate ? ' · ' + f.displayDate : ''}
+                                </div>
+                            </div>
+                            <button class="btn-delete-file" onclick="deleteFile('${f.path}', this)">
+                                <i class="ti ti-trash"></i> 삭제
+                            </button>
+                        </div>`;
+                        }).join('')}
+                    </div>
+                </div>`;
+            }
+
+            container.innerHTML = html;
+
+            document.querySelectorAll('.folder-assign').forEach(select => {
+                select.addEventListener('change', (e) => {
+                    const folder = e.target.dataset.folder;
+                    const nameInput = document.querySelector(`.new-student-name[data-folder="${folder}"]`);
+                    if (e.target.value === '__new__') {
+                        nameInput.style.display = 'block';
+                        const orphan = orphanFolders.find(o => o.folderId === folder);
+                        if (orphan && orphan.files.length > 0) nameInput.value = orphan.files[0].studentName;
+                    } else {
+                        nameInput.style.display = 'none';
+                    }
+                });
+            });
+        }
+
+        async function startRecovery() {
+            const client = await getSupabase();
+            if (!client) return;
+
+            const btn = document.getElementById('recoverBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="ti ti-loader" style="animation:spin 1s linear infinite;"></i> 복구 중...';
+
+            const logArea = document.getElementById('logArea');
+            logArea.style.display = 'block';
+            logArea.innerHTML = '';
+
+            let successCount = 0, errorCount = 0, skippedCount = 0;
+
+            for (const orphan of orphanFolders) {
+                const select = document.querySelector(`.folder-assign[data-folder="${orphan.folderId}"]`);
+                const selectedValue = select ? select.value : '';
+
+                if (!selectedValue) {
+                    addLog(`⏭️ 폴더 ${orphan.folderId} 건너뜀 (학생 미선택)`, 'info');
+                    skippedCount += orphan.files.length;
+                    continue;
+                }
+
+                let targetStudentId = selectedValue;
+
+                if (selectedValue === '__new__') {
+                    const nameInput = document.querySelector(`.new-student-name[data-folder="${orphan.folderId}"]`);
+                    const newName = nameInput ? nameInput.value.trim() : '';
+
+                    if (!newName) {
+                        addLog(`❌ 폴더 ${orphan.folderId}: 새 학생 이름이 비어있습니다`, 'error');
+                        errorCount += orphan.files.length;
+                        continue;
+                    }
+
+                    addLog(`📝 새 학생 등록 중: ${newName}`, 'info');
+                    const { data: newStudent, error: createErr } = await createStudent(newName, null);
+
+                    if (createErr || !newStudent) {
+                        addLog(`❌ 학생 등록 실패: ${createErr}`, 'error');
+                        errorCount += orphan.files.length;
+                        continue;
+                    }
+
+                    targetStudentId = newStudent.id;
+                    addLog(`✅ 학생 등록 완료: ${newName} (${targetStudentId})`, 'success');
+                    allStudents.push(newStudent);
+                }
+
+                const targetStudent = allStudents.find(s => s.id === targetStudentId);
+                const targetName = targetStudent ? targetStudent.name : targetStudentId;
+
+                for (const file of orphan.files) {
+                    try {
+                        addLog(`📥 다운로드 중: ${file.name}`, 'info');
+                        const { data: blob, error: dlError } = await client.storage.from('recordings').download(file.path);
+                        if (dlError) { addLog(`❌ 다운로드 실패: ${file.name} - ${dlError.message}`, 'error'); errorCount++; continue; }
+
+                        const newPath = `${targetStudentId}/${file.name}`;
+                        addLog(`📤 업로드 중: ${newPath}`, 'info');
+                        const { error: upError } = await client.storage.from('recordings').upload(newPath, blob, { contentType: 'video/webm', upsert: true });
+                        if (upError) { addLog(`❌ 업로드 실패: ${newPath} - ${upError.message}`, 'error'); errorCount++; continue; }
+
+                        const { error: delError } = await client.storage.from('recordings').remove([file.path]);
+                        if (delError) addLog(`⚠️ 원본 삭제 실패 (파일은 복사됨): ${file.path}`, 'error');
+
+                        addLog(`✅ 완료: ${file.name} → ${targetName}`, 'success');
+                        successCount++;
+                    } catch (e) {
+                        addLog(`❌ 오류: ${file.name} - ${e.message}`, 'error');
+                        errorCount++;
+                    }
+                }
+            }
+
+            addLog('', 'info');
+            addLog(`========= 복구 완료 =========`, 'info');
+            addLog(`✅ 성공: ${successCount}개`, 'success');
+            addLog(`❌ 실패: ${errorCount}개`, errorCount > 0 ? 'error' : 'info');
+            addLog(`⏭️ 건너뜀: ${skippedCount}개`, 'info');
+
+            updateStatus('success', `✅ 복구 완료! 성공: ${successCount}개, 실패: ${errorCount}개, 건너뜀: ${skippedCount}개`);
+
+            btn.disabled = false;
+            btn.innerHTML = '<i class="ti ti-refresh"></i> 다시 스캔';
+            btn.onclick = () => location.reload();
+        }
+
+        function updateStatus(type, message) {
+            const banner = document.getElementById('statusBanner');
+            banner.className = `status-banner ${type}`;
+            banner.innerHTML = message;
+        }
+
+        function addLog(message, type = 'info') {
+            const logArea = document.getElementById('logArea');
+            const line = document.createElement('div');
+            line.className = `log-${type}`;
+            line.textContent = message;
+            logArea.appendChild(line);
+            logArea.scrollTop = logArea.scrollHeight;
+        }
+
+        async function deleteFile(path, btnEl) {
+            if (!confirm('이 녹화를 영구 삭제하시겠습니까?')) return;
+            btnEl.disabled = true;
+            btnEl.innerHTML = '<i class="ti ti-loader" style="animation:spin 1s linear infinite;"></i>';
+
+            try {
+                const client = await getSupabase();
+                const { error } = await client.storage.from('recordings').remove([path]);
+                if (error) { alert('삭제 실패: ' + error.message); btnEl.disabled = false; btnEl.innerHTML = '<i class="ti ti-trash"></i> 삭제'; return; }
+
+                const rowId = 'file-' + path.replace(/[\W]/g, '_');
+                const row = document.getElementById(rowId);
+                if (row) { row.style.opacity = '0.3'; row.style.pointerEvents = 'none'; setTimeout(() => row.remove(), 300); }
+
+                for (const orphan of orphanFolders) {
+                    orphan.files = orphan.files.filter(f => f.path !== path);
+                }
+            } catch (e) {
+                alert('삭제 오류: ' + e.message);
+                btnEl.disabled = false;
+                btnEl.innerHTML = '<i class="ti ti-trash"></i> 삭제';
+            }
+        }
+
+        function getFilePublicUrl(path) {
+            return `${SUPABASE_URL}/storage/v1/object/public/recordings/${path}`;
+        }
+
+        function togglePreview(el) {
+            const video = el.querySelector('video');
+            const overlay = el.querySelector('.play-overlay');
+            if (video.paused) { video.play(); overlay.style.display = 'none'; video.controls = true; }
+            else { video.pause(); overlay.style.display = 'flex'; video.controls = false; }
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>학원 설정 - TES Speaking</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="icon" type="image/png" sizes="32x32" href="../favicon.png">
+    <link rel="apple-touch-icon" href="../favicon.png">
+    <link rel="manifest" href="../manifest.json">
+    <style>
+        /* Academy-setup specific — code input variant */
+        .t-code-input {
+            text-align: center;
+            letter-spacing: 6px;
+            font-size: var(--text-xl);
+            font-weight: 700;
+            text-transform: uppercase;
+            padding-left: var(--sp-4) !important;
+        }
+
+        /* Academy list item */
+        .t-academy-item {
+            display: flex;
+            align-items: center;
+            gap: var(--sp-3);
+            padding: var(--sp-3) var(--sp-4);
+            background: var(--bg-white);
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius-md);
+            margin-bottom: var(--sp-2);
+            cursor: pointer;
+            transition: all var(--transition);
+        }
+
+        .t-academy-item:hover {
+            border-color: var(--primary);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .t-academy-icon {
+            width: 44px; height: 44px;
+            background: linear-gradient(135deg, var(--primary-mid), var(--primary-dark));
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: var(--text-lg);
+            flex-shrink: 0;
+        }
+
+        .t-academy-role {
+            font-size: var(--text-xs);
+            padding: 2px var(--sp-2);
+            border-radius: 6px;
+            font-weight: 600;
+        }
+
+        .t-academy-role.owner  { background: var(--teacher-pale); color: var(--teacher); }
+        .t-academy-role.teacher { background: var(--primary-pale); color: var(--primary-dark); }
+
+        /* User bar */
+        .t-user-bar {
+            display: flex;
+            align-items: center;
+            gap: var(--sp-3);
+            padding: var(--sp-3) var(--sp-4);
+            background: var(--primary-pale);
+            border: 1px solid var(--primary-light);
+            border-radius: var(--radius-md);
+            margin-bottom: var(--sp-6);
+        }
+
+        .t-user-avatar {
+            width: 40px; height: 40px;
+            border-radius: 50%;
+            background: var(--border);
+            object-fit: cover;
+        }
+
+        .t-btn-logout {
+            background: none;
+            border: none;
+            color: var(--text-muted-soft);
+            cursor: pointer;
+            font-size: var(--text-lg);
+            padding: var(--sp-2);
+            border-radius: var(--radius-sm);
+            transition: all var(--transition);
+        }
+
+        .t-btn-logout:hover { color: var(--wrong); background: var(--wrong-pale); }
+    </style>
+</head>
+
+<body class="t-auth-body">
+    <div class="t-auth-bg-orb"></div>
+    <div class="t-auth-bg-orb"></div>
+
+    <div class="t-auth-card" style="padding:var(--sp-10) var(--sp-8) var(--sp-8);">
+        <div style="text-align:center; margin-bottom:var(--sp-8);">
+            <div class="t-logo-icon" style="width:56px; height:56px; font-size:1.5rem; border-radius:var(--radius-lg); margin-bottom:var(--sp-4);">
+                <i class="ti ti-building"></i>
+            </div>
+            <h1 style="font-size:var(--text-2xl); font-weight:700; color:var(--text-dark); margin-bottom:var(--sp-1);">학원 설정</h1>
+            <p style="font-size:var(--text-sm); color:var(--text-muted);">학원을 만들거나 참여하세요</p>
+        </div>
+
+        <!-- User info -->
+        <div class="t-user-bar" id="userBar" style="display:none;">
+            <img id="userAvatar" class="t-user-avatar" src="" alt="">
+            <div style="flex:1;">
+                <div style="font-weight:600; font-size:var(--text-sm); color:var(--text-dark);" id="userName">선생님</div>
+                <div style="font-size:var(--text-xs); color:var(--text-muted);" id="userEmail">email@example.com</div>
+            </div>
+            <button class="t-btn-logout" onclick="logout()" title="로그아웃">
+                <i class="ti ti-logout"></i>
+            </button>
+        </div>
+
+        <!-- Existing academies (if any) -->
+        <div id="existingSection" style="display:none;">
+            <div style="font-size:var(--text-sm); font-weight:600; color:var(--text-muted); margin-bottom:var(--sp-3); display:flex; align-items:center; gap:var(--sp-1);">
+                <i class="ti ti-building"></i> 내 학원
+            </div>
+            <div id="academyList"></div>
+            <div class="t-divider">또는 새로 추가</div>
+        </div>
+
+        <!-- Tabs: Create / Join -->
+        <div class="t-filter-tabs" style="margin-bottom:var(--sp-6);">
+            <button class="t-filter-tab active" onclick="switchTab('create')">학원 만들기</button>
+            <button class="t-filter-tab" onclick="switchTab('join')">코드로 참여</button>
+        </div>
+
+        <!-- Create Tab -->
+        <div id="tab-create">
+            <div class="t-form-group">
+                <label class="t-form-label">학원 이름</label>
+                <div class="t-input-wrapper">
+                    <span class="t-input-icon"><i class="ti ti-building"></i></span>
+                    <input type="text" id="academyName" class="t-form-input" placeholder="예: TES 어학원" required>
+                </div>
+            </div>
+            <button class="t-btn-action" onclick="handleCreate()">
+                <i class="ti ti-plus"></i> 학원 만들기
+            </button>
+            <p class="t-hint">생성 후 고유 코드가 발급됩니다</p>
+        </div>
+
+        <!-- Join Tab -->
+        <div id="tab-join" style="display:none;">
+            <div class="t-form-group">
+                <label class="t-form-label">학원 코드</label>
+                <input type="text" id="academyCode" class="t-form-input t-code-input"
+                    style="padding-left:var(--sp-4);" placeholder="ABC123" maxlength="6" required>
+            </div>
+            <button class="t-btn-action" onclick="handleJoin()">
+                <i class="ti ti-login"></i> 참여하기
+            </button>
+            <p class="t-hint">학원 관리자에게 코드를 받으세요</p>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div class="t-modal-overlay" id="successModal">
+        <div class="t-modal-card" style="text-align:center;">
+            <div style="font-size:3rem; margin-bottom:var(--sp-4);">🎉</div>
+            <div class="t-modal-title" style="text-align:center;">학원이 생성되었습니다!</div>
+            <div class="t-modal-desc" style="text-align:center;">학원 코드를 학생들에게 공유하세요</div>
+            <div id="newCode" style="font-size:var(--text-2xl); font-weight:800; letter-spacing:6px; color:var(--teacher);
+                        padding:var(--sp-4); background:var(--teacher-pale); border-radius:var(--radius-md); margin-bottom:var(--sp-5);
+                        font-family:monospace;"></div>
+            <button class="t-modal-btn cancel" onclick="copyCode()" style="margin-bottom:var(--sp-2); flex:none; width:100%;">
+                <i class="ti ti-copy"></i> 코드 복사
+            </button>
+            <button class="t-btn-action" onclick="goToDashboard()">
+                대시보드로 이동 →
+            </button>
+        </div>
+    </div>
+
+    <script src="../js/supabase.js"></script>
+    <script>
+        let currentUser = null;
+        let createdAcademy = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await new Promise(r => setTimeout(r, 800));
+
+            const { data: session } = await getTeacherSession();
+
+            if (!session || !session.user) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            currentUser = session.user;
+
+            const bar = document.getElementById('userBar');
+            bar.style.display = 'flex';
+            document.getElementById('userName').textContent =
+                currentUser.user_metadata?.full_name || currentUser.email.split('@')[0];
+            document.getElementById('userEmail').textContent = currentUser.email;
+
+            const avatarUrl = currentUser.user_metadata?.avatar_url;
+            if (avatarUrl) {
+                document.getElementById('userAvatar').src = avatarUrl;
+            } else {
+                document.getElementById('userAvatar').style.display = 'none';
+            }
+
+            await loadAcademies();
+        });
+
+        async function loadAcademies() {
+            const { data: academies } = await getMyAcademies();
+
+            if (academies && academies.length > 0) {
+                document.getElementById('existingSection').style.display = 'block';
+
+                document.getElementById('academyList').innerHTML = academies.map(ac => `
+                    <div class="t-academy-item" onclick="selectAcademy('${ac.id}', '${ac.name}', '${ac.code}', '${ac.role}')">
+                        <div class="t-academy-icon">
+                            <i class="ti ti-building"></i>
+                        </div>
+                        <div style="flex:1;">
+                            <div style="font-weight:600; color:var(--text-dark); font-size:var(--text-sm);">${ac.name}</div>
+                            <div style="font-size:var(--text-xs); color:var(--text-muted); font-family:monospace; letter-spacing:1px;">코드: ${ac.code}</div>
+                        </div>
+                        <span class="t-academy-role ${ac.role}">${ac.role === 'owner' ? '관리자' : '선생님'}</span>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function selectAcademy(id, name, code, role) {
+            setCurrentAcademy({ id, name, code, role });
+            window.location.href = 'dashboard.html';
+        }
+
+        function switchTab(tab) {
+            document.querySelectorAll('.t-filter-tab').forEach((btn, i) => {
+                btn.classList.toggle('active', (tab === 'create' && i === 0) || (tab === 'join' && i === 1));
+            });
+            document.getElementById('tab-create').style.display = tab === 'create' ? 'block' : 'none';
+            document.getElementById('tab-join').style.display = tab === 'join' ? 'block' : 'none';
+        }
+
+        async function handleCreate() {
+            const name = document.getElementById('academyName').value.trim();
+            if (!name) {
+                showToast('학원 이름을 입력해주세요', 'error');
+                return;
+            }
+
+            showLoading('학원 생성 중...');
+            const { data, error } = await createAcademy(name);
+            hideLoading();
+
+            if (error) {
+                showToast('학원 생성 실패: ' + (error.message || error), 'error');
+                return;
+            }
+
+            createdAcademy = data;
+            setCurrentAcademy(data);
+
+            document.getElementById('newCode').textContent = data.code;
+            document.getElementById('successModal').classList.add('active');
+        }
+
+        async function handleJoin() {
+            const code = document.getElementById('academyCode').value.trim();
+            if (!code || code.length < 6) {
+                showToast('학원 코드 6자리를 입력해주세요', 'error');
+                return;
+            }
+
+            showLoading('학원 참여 중...');
+            const { data, error } = await joinAcademyByCode(code);
+            hideLoading();
+
+            if (error) {
+                showToast('학원 참여 실패: ' + (error.message || error), 'error');
+                return;
+            }
+
+            setCurrentAcademy(data);
+            showToast('학원에 참여했습니다!', 'success');
+            setTimeout(() => {
+                window.location.href = 'dashboard.html';
+            }, 800);
+        }
+
+        function copyCode() {
+            if (createdAcademy) {
+                navigator.clipboard.writeText(createdAcademy.code);
+                showToast('코드가 복사되었습니다!');
+            }
+        }
+
+        function goToDashboard() {
+            window.location.href = 'dashboard.html';
+        }
+
+        async function logout() {
+            await teacherLogout();
+            sessionStorage.clear();
+            window.location.href = 'login.html';
+        }
+    </script>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('../service-worker.js')
+                    .then(reg => console.log('SW registered'))
+                    .catch(err => console.log('SW registration failed: ', err));
+            });
+        }
+    </script>
+</body>
+
+</html>

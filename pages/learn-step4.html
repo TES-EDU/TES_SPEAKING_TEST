@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>4단계: 스피킹 녹화 - TES Speaking</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+        }
+
+        /* Set video preview to 4:3 aspect ratio to keep it compact on all devices */
+        #cameraSection video,
+        #previewSection video {
+            width: 100% !important;
+            max-width: 600px;
+            aspect-ratio: 4 / 3;
+            object-fit: cover;
+            margin: 0 auto;
+            display: block;
+        }
+    @media(max-width:600px){.page-content{padding:8px 12px!important}.page-content>div{gap:9px!important}.step-header{display:none!important}.progress-bar{display:none!important}.step-indicator{margin:3px!important}#cameraPreview,#videoPreview{max-height:25vh!important;object-fit:contain!important}#recordControls button{padding:10px!important;font-size:1rem!important}#recordControls{gap:3px!important}.card{padding:10px!important}.app-container{padding-bottom:100px!important}} </style>
+    <link rel="icon" type="image/png" sizes="32x32" href="../favicon.png">
+    <link rel="apple-touch-icon" href="../favicon.png">
+    <link rel="manifest" href="../manifest.json">
+<style>
+.tes-step-dock{position:fixed;bottom:env(safe-area-inset-bottom,0px);left:0;right:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;padding:7px 8px;background:white;box-shadow:0 -2px 12px #0002;z-index:1100;max-width:600px;margin:auto}
+.tes-step-link{display:flex;flex-direction:column;align-items:center;text-decoration:none;border-radius:9px;background:#e9f1f2;color:#305458;padding:8px 1px;font-size:12px;line-height:1.4}.tes-step-link small{font-size:10px}.tes-step-link.active{background:#20858a;color:#fff}
+@media(max-width:600px){.app-container{padding-bottom:145px!important}.step-header{margin:5px 0!important}.step-title{font-size:1rem!important}.step-progress{padding:6px 12px!important}}
+</style></head>
+
+<body>
+    <div class="app-container" style="padding-bottom: 120px;">
+        <!-- Header -->
+        <header class="app-header">
+            <a href="learn-step3.html" class="back-btn">←</a>
+            <h1 class="header-title">스피킹 녹화</h1>
+            <div class="header-action"></div>
+        </header>
+
+        <!-- Progress -->
+        <div style="padding: 0 20px;">
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: 100%;"></div>
+            </div>
+            <div class="step-indicator">
+                <span class="current">4단계</span> / 4단계 (마지막!)
+            </div>
+        </div>
+
+        <div class="page-content">
+            <!-- Step Header -->
+            <div class="step-header">
+                <span class="step-badge"><i class="ti ti-video"></i> 스피킹 녹화</span>
+                <h2 class="step-title">모든 문장을 읽고 녹화하세요</h2>
+            </div>
+
+            <!-- Centered Layout Container: Limits width on PC to match 4:3 video, adds vertical gaps -->
+            <div style="max-width: 600px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px;">
+
+                <!-- Video & Timer Section -->
+                <div>
+                    <!-- Video Preview (hidden initially) -->
+                    <div class="hidden" id="previewSection">
+                        <video id="videoPreview" style="width: 100%; border-radius: var(--radius-lg); background: #000;"
+                            controls></video>
+                    </div>
+
+                    <!-- Camera Preview -->
+                    <div id="cameraSection">
+                        <video id="cameraPreview"
+                            style="width: 100%; border-radius: var(--radius-lg); background: #000; transform: scaleX(-1);"
+                            autoplay muted playsinline></video>
+                    </div>
+
+                    <!-- Recording Timer -->
+                    <div class="text-center" style="margin-top: 12px; height: 24px;">
+                        <span id="recordingTimer"
+                            style="font-size: 1.5rem; font-weight: 700; color: var(--accent-coral);"
+                            class="hidden">00:00</span>
+                    </div>
+                </div>
+
+                <!-- Sleek Recording Controls (moved closer to video, replaced large bottom circle) -->
+                <div id="recordControls" style="display: flex; flex-direction: column; gap: 8px;">
+                    <button class="btn btn-primary btn-block" id="recordBtn" onclick="toggleRecording()"
+                        style="padding: 16px; font-size: 1.125rem; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.3s; box-shadow: var(--shadow-sm);">
+                        <i class="ti ti-video" style="font-size: 1.5rem;"></i> <span>녹화 시작</span>
+                    </button>
+                    <p class="text-center text-gray" id="recordHint" style="font-size: 0.875rem; margin: 0;">버튼을 눌러 녹화
+                        시작</p>
+                </div>
+
+                <!-- Sentences Reference -->
+                <div class="card" style="margin: 0; box-shadow: var(--shadow-sm);">
+                    <!-- Toggle options for display -->
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+                        <p class="text-gray" style="font-size: 0.875rem; margin: 0;">읽을 문장들:</p>
+                        <div style="display: flex; gap: 12px;">
+                            <label
+                                style="display: flex; align-items: center; gap: 4px; font-size: 0.8rem; color: var(--text-gray); cursor: pointer;">
+                                <input type="checkbox" id="showKorean" onchange="renderSentences()"
+                                    style="width: 16px; height: 16px; accent-color: var(--primary);">
+                                <span>한글</span>
+                            </label>
+                            <label
+                                style="display: flex; align-items: center; gap: 4px; font-size: 0.8rem; color: var(--text-gray); cursor: pointer;">
+                                <input type="checkbox" id="showEnglish" onchange="renderSentences()" checked
+                                    style="width: 16px; height: 16px; accent-color: var(--primary);">
+                                <span>영어</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div id="sentenceList" style="font-size: 0.9rem; max-height: 180px; overflow-y: auto;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="action-buttons hidden" id="actionButtons" style="gap: 12px; display: flex;">
+            <button class="btn btn-secondary" style="flex: 1;" onclick="retryRecording()">다시 녹화</button>
+            <button class="btn btn-primary" style="flex: 2;" onclick="saveAndComplete()">저장하고 완료하기 →</button>
+        </div>
+    </div>
+
+    <script src="../js/supabase.js"></script>
+    <script src="../js/recorder.js"></script>
+    <script>
+        let sentences = [];
+        let isRecording = false;
+        let recordedBlob = null;
+        let cameraStream = null;
+        let timerInterval = null;
+        let recordingSeconds = 0;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            sentences = JSON.parse(sessionStorage.getItem('currentSentences')) || [];
+            if (sentences.length === 0) {
+                window.location.href = 'learn-step1.html';
+                return;
+            }
+
+            renderSentences();
+            await initCamera();
+        });
+
+        function renderSentences() {
+            const list = document.getElementById('sentenceList');
+            const showKorean = document.getElementById('showKorean').checked;
+            const showEnglish = document.getElementById('showEnglish').checked;
+
+            // If neither is checked, show at least English
+            const displayEnglish = showEnglish || (!showKorean && !showEnglish);
+            const displayKorean = showKorean;
+
+            list.innerHTML = sentences.map((s, i) => `
+                <div style="padding: 8px 0; border-bottom: 1px solid var(--bg-gray);">
+                    <div style="display: flex; align-items: flex-start; gap: 8px;">
+                        <span style="color: var(--primary); font-weight: 600; min-width: 24px;">${i + 1}.</span>
+                        <div>
+                            ${displayEnglish ? `<div style="font-weight: 500;">${s.en}</div>` : ''}
+                            ${displayKorean ? `<div style="color: var(--text-gray); font-size: 0.85rem;${displayEnglish ? ' margin-top: 4px;' : ''}">${s.kr}</div>` : ''}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function initCamera() {
+            try {
+                // Stop any existing stream first
+                if (cameraStream) {
+                    cameraStream.getTracks().forEach(track => track.stop());
+                    cameraStream = null;
+                }
+
+                cameraStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'user' },
+                    audio: true
+                });
+                document.getElementById('cameraPreview').srcObject = cameraStream;
+            } catch (e) {
+                console.error('Camera error:', e);
+                showToast('카메라 접근을 허용해주세요', 'error');
+            }
+        }
+
+        async function toggleRecording() {
+            const btn = document.getElementById('recordBtn');
+            const hint = document.getElementById('recordHint');
+            const timer = document.getElementById('recordingTimer');
+
+            if (!isRecording) {
+                // Start recording
+                try {
+                    // Ensure camera is ready
+                    if (!cameraStream) {
+                        await initCamera();
+                    }
+
+                    await recorder.startCameraRecording((time) => {
+                        timer.textContent = time;
+                    });
+
+                    isRecording = true;
+                    btn.style.backgroundColor = '#EF4444';
+                    btn.style.borderColor = '#EF4444';
+                    btn.style.color = 'white';
+                    btn.innerHTML = '<i class="ti ti-player-stop" style="font-size: 1.5rem;"></i> <span>녹화 중지</span>';
+                    timer.classList.remove('hidden');
+                    hint.textContent = '녹화 중... 버튼을 눌러 중지';
+                } catch (e) {
+                    console.error('Recording error:', e);
+                    showToast('녹화를 시작할 수 없습니다', 'error');
+                }
+            } else {
+                // Stop recording
+                recordedBlob = await recorder.stopRecording();
+                isRecording = false;
+                btn.style.backgroundColor = '';
+                btn.style.borderColor = '';
+                btn.style.color = '';
+                btn.innerHTML = '<i class="ti ti-video" style="font-size: 1.5rem;"></i> <span>녹화 시작</span>';
+                timer.classList.add('hidden');
+                hint.textContent = '녹화 완료!';
+
+                if (recordedBlob) {
+                    // Stop camera to free resources
+                    if (cameraStream) {
+                        cameraStream.getTracks().forEach(track => track.stop());
+                        cameraStream = null;
+                    }
+
+                    // Show preview
+                    const url = URL.createObjectURL(recordedBlob);
+                    document.getElementById('videoPreview').src = url;
+                    document.getElementById('previewSection').classList.remove('hidden');
+                    document.getElementById('cameraSection').classList.add('hidden');
+
+                    // Show action buttons
+                    document.getElementById('actionButtons').classList.remove('hidden');
+                }
+            }
+        }
+
+        async function retryRecording() {
+            recordedBlob = null;
+            document.getElementById('previewSection').classList.add('hidden');
+            document.getElementById('cameraSection').classList.remove('hidden');
+            document.getElementById('actionButtons').classList.add('hidden');
+            document.getElementById('recordHint').textContent = '버튼을 눌러 녹화 시작';
+            const btn = document.getElementById('recordBtn');
+            btn.style.backgroundColor = '';
+            btn.style.borderColor = '';
+            btn.style.color = '';
+            btn.innerHTML = '<i class="ti ti-video" style="font-size: 1.5rem;"></i> <span>녹화 시작</span>';
+
+            await initCamera();
+            const vid = document.getElementById('cameraPreview');
+            if (vid.srcObject) vid.play().catch(() => {});
+        }
+
+        async function saveAndComplete() {
+            if (!recordedBlob) return;
+
+            showLoading('저장 및 처리 중...');
+
+            try {
+                const student = JSON.parse(sessionStorage.getItem('currentStudent'));
+                const studentId = student?.id || 'demo';
+                const studentName = student?.name || 'student';
+
+                // Validate student ID - must be a valid UUID from database, not a numeric Date.now() fallback
+                const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(studentId);
+                if (!isValidUUID) {
+                    console.error('❌ Invalid student ID (not a UUID):', studentId);
+                    hideLoading();
+                    showToast('학생 정보가 올바르지 않습니다. 다시 로그인해주세요.', 'error');
+                    setTimeout(() => {
+                        window.location.href = '../index.html';
+                    }, 2000);
+                    return;
+                }
+
+                // Get unit info from sessionStorage
+                const unitTitle = sessionStorage.getItem('currentUnitTitle') || 'Unit';
+
+                const { data: videoUrl, error } = await uploadVideo(recordedBlob, studentId, studentName, unitTitle);
+
+                if (error) {
+                    hideLoading();
+                    showToast('저장 실패: ' + error.message, 'error');
+                    return;
+                }
+
+                // Save script metadata to DB (shared_links) so teacher can always see it
+                try {
+                    const sentences = JSON.parse(sessionStorage.getItem('currentSentences') || '[]');
+
+                    if (sentences.length > 0 && videoUrl) {
+                        const client = await getSupabase();
+                        const scriptEn = sentences.map(s => s.en || '').join('\n');
+                        const scriptKr = sentences.map(s => s.kr || '').join('\n');
+
+                        // Generate short code for auto-saved link
+                        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+                        let code = '';
+                        for (let i = 0; i < 7; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+
+                        await client.from('shared_links').insert([{
+                            code: code,
+                            video_url: videoUrl,
+                            student_name: studentName,
+                            recorded_at: new Date().toISOString(),
+                            script_en: scriptEn || null,
+                            script_kr: scriptKr || null
+                        }]);
+                        console.log('📝 Script saved to DB for teacher view');
+                    }
+                } catch (metaErr) {
+                    console.warn('Script DB save failed (non-critical):', metaErr);
+                }
+
+                if (videoUrl) {
+                    sessionStorage.setItem('recordingUrl', videoUrl);
+                    showToast('성공적으로 제출되었습니다!', 'success');
+                } else {
+                    showToast('녹화가 성공적으로 제출되었습니다!', 'success');
+                }
+
+                // Auto-cleanup old recordings in background (7 days)
+                cleanupOldRecordings(studentId).catch(() => {});
+                
+                // Add a small delay so user can read the toast before navigating
+                setTimeout(() => {
+                    hideLoading();
+                    completeLesson();
+                }, 1200);
+
+            } catch (e) {
+                console.error('Upload error:', e);
+                hideLoading();
+                showToast('저장 중 오류가 발생했습니다', 'error');
+            }
+        }
+
+        function completeLesson() {
+            // Stop camera
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+            }
+
+            window.location.href = 'complete.html';
+        }
+
+        // Cleanup on page leave
+        window.addEventListener('beforeunload', () => {
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+            }
+        });
+    </script>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('../service-worker.js')
+                    .then(reg => console.log('SW registered'))
+                    .catch(err => console.log('SW registration failed: ', err));
+            });
+        }
+    </script>
+<nav class="tes-step-dock" aria-label="학습 단계 이동"><a href="learn-step1.html" class="tes-step-link tes-step-1"><b>1단계</b><small>러닝</small></a><a href="learn-step2.html" class="tes-step-link tes-step-2"><b>2단계</b><small>발음 연습</small></a><a href="learn-step3.html" class="tes-step-link tes-step-3"><b>3단계</b><small>동시통역</small></a><a href="learn-step4.html" class="tes-step-link tes-step-4 active"><b>4단계</b><small>영상 녹화</small></a></nav></body>
+
+</html>

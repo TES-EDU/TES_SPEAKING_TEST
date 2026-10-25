@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>1단계: 예문 보기 - TES Speaking</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="icon" type="image/png" sizes="32x32" href="../favicon.png">
+    <link rel="apple-touch-icon" href="../favicon.png">
+    <link rel="manifest" href="../manifest.json">
+<style>
+.tes-step-dock{position:fixed;bottom:env(safe-area-inset-bottom,0px);left:0;right:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;padding:7px 8px;background:white;box-shadow:0 -2px 12px #0002;z-index:1100;max-width:600px;margin:auto}
+.tes-step-link{display:flex;flex-direction:column;align-items:center;text-decoration:none;border-radius:9px;background:#e9f1f2;color:#305458;padding:8px 1px;font-size:12px;line-height:1.4}.tes-step-link small{font-size:10px}.tes-step-link.active{background:#20858a;color:#fff}
+@media(max-width:600px){.app-container{padding-bottom:145px!important}.step-header{margin:5px 0!important}.step-title{font-size:1rem!important}.step-progress{padding:6px 12px!important}}
+</style></head>
+
+<body>
+    <div class="app-container" style="padding-bottom: 88px;">
+        <!-- Header -->
+        <header class="app-header">
+            <a href="unit.html" class="back-btn"><i class="ti ti-x"></i></a>
+            <h1 class="header-title" id="unitName">Unit</h1>
+            <div class="header-action"></div>
+        </header>
+
+        <!-- Step Progress -->
+        <div class="step-progress">
+            <div class="step-dots">
+                <div class="step-dot active"></div>
+                <div class="step-dot"></div>
+                <div class="step-dot"></div>
+                <div class="step-dot"></div>
+            </div>
+            <div class="step-label"><span>1단계</span> · 예문 보기</div>
+        </div>
+
+        <div class="page-content">
+            <!-- Step Header -->
+            <div class="step-header">
+                <span class="step-badge"><i class="ti ti-book"></i> 예문 보기</span>
+                <h2 class="step-title">문장을 터치해 발음을 들어보세요</h2>
+            </div>
+
+            <!-- Sentence List -->
+            <div class="sentence-list" id="sentenceList"></div>
+        </div>
+
+        <!-- Action Button -->
+    </div>
+
+    <script src="../js/supabase.js"></script>
+    <script src="../js/tts.js"></script>
+    <script>
+        let sentences = [];
+        let playingId = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const unit = JSON.parse(sessionStorage.getItem('currentUnit'));
+            if (unit) document.getElementById('unitName').textContent = unit.name;
+
+            const stored = sessionStorage.getItem('currentSentences');
+            if (stored) {
+                try { sentences = JSON.parse(stored); } catch (e) {}
+            }
+
+            if (sentences.length === 0) {
+                sentences = [
+                    { en: 'Hello, nice to meet you.', kr: '안녕하세요, 만나서 반갑습니다.' },
+                    { en: 'I am a student.', kr: '저는 학생입니다.' }
+                ];
+                sessionStorage.setItem('currentSentences', JSON.stringify(sentences));
+            }
+
+            renderSentences();
+        });
+
+        function renderSentences() {
+            const list = document.getElementById('sentenceList');
+            if (sentences.length === 0) {
+                list.innerHTML = `<div class="card text-center" style="padding: var(--sp-10);"><p class="text-gray">문장 데이터가 없습니다</p></div>`;
+                return;
+            }
+
+            list.innerHTML = sentences.map((s, idx) => `
+                <div class="sentence-item" id="sentence-${idx}" onclick="playSentence(${idx})">
+                    <span class="sentence-num">${idx + 1}</span>
+                    <div class="sentence-text">
+                        <div class="sentence-text-en">${s.en}</div>
+                        <div class="sentence-text-kr">${s.kr}</div>
+                    </div>
+                    <span class="sentence-play"><i class="ti ti-volume"></i></span>
+                </div>
+            `).join('');
+        }
+
+        async function playSentence(idx) {
+            document.querySelectorAll('.sentence-item').forEach(el => el.classList.remove('active'));
+            document.getElementById(`sentence-${idx}`).classList.add('active');
+
+            if (typeof tts !== 'undefined' && tts) {
+                try { await tts.speak(sentences[idx].en, { rate: 0.85 }); } catch (e) {}
+            }
+        }
+
+        function goToStep2() {
+            window.location.href = 'learn-step2.html';
+        }
+    </script>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('../service-worker.js').then(() => {}).catch(() => {});
+            });
+        }
+    </script>
+<nav class="tes-step-dock" aria-label="학습 단계 이동"><a href="learn-step1.html" class="tes-step-link tes-step-1 active"><b>1단계</b><small>러닝</small></a><a href="learn-step2.html" class="tes-step-link tes-step-2"><b>2단계</b><small>발음 연습</small></a><a href="learn-step3.html" class="tes-step-link tes-step-3"><b>3단계</b><small>동시통역</small></a><a href="learn-step4.html" class="tes-step-link tes-step-4"><b>4단계</b><small>영상 녹화</small></a></nav></body>
+
+</html>

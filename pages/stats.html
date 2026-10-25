@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>학습 통계 - TES Speaking</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+        }
+
+        .week-day {
+            text-align: center;
+        }
+
+        .week-day-circle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 4px;
+            font-size: 0.9rem;
+        }
+
+        .week-day-circle.completed {
+            background: var(--primary);
+            color: white;
+        }
+
+        .week-day-circle.empty {
+            background: var(--bg-gray);
+            color: var(--text-light);
+        }
+
+        .week-day-label {
+            font-size: 0.75rem;
+            color: var(--text-gray);
+        }
+
+        .empty-recent {
+            text-align: center;
+            padding: 32px;
+            color: var(--text-gray);
+        }
+    </style>
+    <link rel="icon" type="image/png" sizes="32x32" href="../favicon.png">
+    <link rel="apple-touch-icon" href="../favicon.png">
+    <link rel="manifest" href="../manifest.json">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <a href="main.html" class="back-btn">←</a>
+            <h1 class="header-title">학습 통계</h1>
+            <div class="header-action"></div>
+        </header>
+
+        <div class="page-content">
+            <!-- Overall Stats Card -->
+            <div class="stats-card">
+                <div style="text-align: center;">
+                    <div class="stats-value" style="font-size: 3rem;">🔥 <span id="streakCount">0</span></div>
+                    <div class="stats-label" style="font-size: 1rem;">연속 학습일</div>
+                </div>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="stats-grid mt-3">
+                <div class="stat-item">
+                    <div class="stat-value" id="completedUnits">0</div>
+                    <div class="stat-label">완료한 유닛</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="learnedSentences">0</div>
+                    <div class="stat-label">학습한 문장</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="recordingCount">0</div>
+                    <div class="stat-label">녹화 영상</div>
+                </div>
+            </div>
+
+            <!-- Weekly Progress -->
+            <div class="card mt-3">
+                <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 16px;"><i class="ti ti-calendar"></i> 이번 주
+                    학습</h3>
+                <div style="display: flex; justify-content: space-between;" id="weeklyProgress">
+                    <!-- Dynamically generated -->
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <h3 style="font-size: 1rem; font-weight: 600; margin: 24px 0 16px;"><i class="ti ti-notes"></i> 최근 학습</h3>
+            <div id="recentActivity">
+                <!-- Dynamically generated -->
+            </div>
+
+            <!-- Share Button -->
+            <button class="btn btn-primary btn-block mt-3" onclick="shareStats()">
+                <i class="ti ti-share"></i> 결과지 공유하기
+            </button>
+        </div>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav">
+            <a href="main.html" class="nav-item">
+                <span class="nav-icon"><i class="ti ti-home"></i></span>
+                <span>홈</span>
+            </a>
+            <a href="class.html" class="nav-item">
+                <span class="nav-icon"><i class="ti ti-books"></i></span>
+                <span>클래스</span>
+            </a>
+            <a href="stats.html" class="nav-item active">
+                <span class="nav-icon"><i class="ti ti-chart-bar"></i></span>
+                <span>통계</span>
+            </a>
+            <a href="profile.html" class="nav-item">
+                <span class="nav-icon"><i class="ti ti-user"></i></span>
+                <span>프로필</span>
+            </a>
+        </nav>
+    </div>
+
+    <script src="../js/supabase.js"></script>
+    <script>
+        const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+        let student = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            student = JSON.parse(sessionStorage.getItem('currentStudent'));
+
+            loadStats();
+            renderWeeklyProgress();
+            renderRecentActivity();
+            await loadRecordingCount();
+        });
+
+        function loadStats() {
+            if (!student) return;
+
+            let totalSentences = 0;
+            let totalSessions = 0;
+            let streakDays = 0;
+
+            // Calculate from localStorage completion data
+            const today = new Date();
+
+            // Check last 30 days for stats
+            for (let i = 0; i < 30; i++) {
+                const date = new Date(today);
+                date.setDate(date.getDate() - i);
+                const dateStr = date.toISOString().split('T')[0];
+                const key = `completion_${student.name}_${dateStr}`;
+                const data = JSON.parse(localStorage.getItem(key) || 'null');
+
+                if (data) {
+                    totalSentences += data.sentences || 0;
+                    totalSessions += data.sessions || 0;
+                }
+            }
+
+            // Calculate streak
+            for (let i = 0; i < 365; i++) {
+                const date = new Date(today);
+                date.setDate(date.getDate() - i);
+                const dateStr = date.toISOString().split('T')[0];
+                const key = `completion_${student.name}_${dateStr}`;
+                const data = JSON.parse(localStorage.getItem(key) || 'null');
+
+                if (data && data.sessions > 0) {
+                    streakDays++;
+                } else if (i > 0) {
+                    // Allow today to be incomplete, but break on other days
+                    break;
+                }
+            }
+
+            document.getElementById('streakCount').textContent = streakDays;
+            document.getElementById('completedUnits').textContent = totalSessions;
+            document.getElementById('learnedSentences').textContent = totalSentences;
+        }
+
+        function renderWeeklyProgress() {
+            if (!student) return;
+
+            const container = document.getElementById('weeklyProgress');
+            const today = new Date();
+            const currentDay = today.getDay(); // 0 = Sunday
+
+            // Start from Monday
+            const monday = new Date(today);
+            monday.setDate(today.getDate() - ((currentDay + 6) % 7));
+
+            let html = '';
+
+            for (let i = 0; i < 7; i++) {
+                const date = new Date(monday);
+                date.setDate(monday.getDate() + i);
+                const dateStr = date.toISOString().split('T')[0];
+                const key = `completion_${student.name}_${dateStr}`;
+                const data = JSON.parse(localStorage.getItem(key) || 'null');
+                const completed = data && data.sessions > 0;
+                const dayIndex = (i + 1) % 7; // Monday = 1
+
+                html += `
+                    <div class="week-day">
+                        <div class="week-day-circle ${completed ? 'completed' : 'empty'}">
+                            ${completed ? '✓' : '-'}
+                        </div>
+                        <span class="week-day-label">${dayNames[dayIndex]}</span>
+                    </div>
+                `;
+            }
+
+            container.innerHTML = html;
+        }
+
+        function renderRecentActivity() {
+            if (!student) {
+                document.getElementById('recentActivity').innerHTML = `
+                    <div class="empty-recent">로그인 후 학습 기록이 표시됩니다</div>
+                `;
+                return;
+            }
+
+            const container = document.getElementById('recentActivity');
+            const today = new Date();
+            let html = '';
+            let foundAny = false;
+
+            // Check last 7 days
+            for (let i = 0; i < 7; i++) {
+                const date = new Date(today);
+                date.setDate(date.getDate() - i);
+                const dateStr = date.toISOString().split('T')[0];
+                const key = `completion_${student.name}_${dateStr}`;
+                const data = JSON.parse(localStorage.getItem(key) || 'null');
+
+                if (data && data.sessions > 0) {
+                    foundAny = true;
+                    const dayLabel = i === 0 ? '오늘' : i === 1 ? '어제' : `${i}일 전`;
+
+                    html += `
+                        <div class="list-card">
+                            <div class="list-icon" style="background: var(--primary); color: white;">✓</div>
+                            <div class="list-content">
+                                <div class="list-title">학습 완료</div>
+                                <div class="list-subtitle">${dayLabel} • ${data.sentences}개 문장</div>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+
+            if (!foundAny) {
+                html = `<div class="empty-recent">아직 학습 기록이 없습니다</div>`;
+            }
+
+            container.innerHTML = html;
+        }
+
+        async function loadRecordingCount() {
+            try {
+                const client = await getSupabase();
+                if (!client) {
+                    document.getElementById('recordingCount').textContent = '0';
+                    return;
+                }
+
+                // List all folders in recordings bucket
+                const { data: folders } = await client.storage.from('recordings').list('', { limit: 100 });
+
+                let count = 0;
+
+                if (folders) {
+                    for (const folder of folders) {
+                        if (folder.name && folder.id === null) {
+                            const { data: contents } = await client.storage
+                                .from('recordings')
+                                .list(folder.name, { limit: 100 });
+
+                            if (contents) {
+                                for (const item of contents) {
+                                    if (item.name.endsWith('.webm')) {
+                                        count++;
+                                    } else if (item.id === null && !item.name.includes('.')) {
+                                        // Subfolder
+                                        const { data: subContents } = await client.storage
+                                            .from('recordings')
+                                            .list(`${folder.name}/${item.name}`, { limit: 100 });
+
+                                        if (subContents) {
+                                            count += subContents.filter(f => f.name.endsWith('.webm')).length;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                document.getElementById('recordingCount').textContent = count;
+
+            } catch (e) {
+                console.error('Failed to count recordings:', e);
+                document.getElementById('recordingCount').textContent = '0';
+            }
+        }
+
+        function shareStats() {
+            const streak = document.getElementById('streakCount').textContent;
+            const sentences = document.getElementById('learnedSentences').textContent;
+
+            if (navigator.share) {
+                navigator.share({
+                    title: 'TES Speaking 학습 통계',
+                    text: `🔥 연속 ${streak}일 학습! ${sentences}개 문장 완료!`
+                }).catch(err => console.log('Share failed:', err));
+            } else {
+                showToast('공유 기능을 사용할 수 없습니다', 'warning');
+            }
+        }
+    </script>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('../service-worker.js')
+                    .then(reg => console.log('SW registered'))
+                    .catch(err => console.log('SW registration failed: ', err));
+            });
+        }
+    </script>
+</body>
+
+</html>

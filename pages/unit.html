@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>유닛 선택 - TES Speaking</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="icon" type="image/png" sizes="32x32" href="../favicon.png">
+    <link rel="apple-touch-icon" href="../favicon.png">
+    <link rel="manifest" href="../manifest.json">
+    <style>
+        .unit-list-item {
+            display: flex;
+            align-items: center;
+            gap: var(--sp-4);
+            padding: var(--sp-4);
+            background: var(--bg-white);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-xs);
+            margin-bottom: var(--sp-2);
+            cursor: pointer;
+            transition: var(--transition);
+            border: 1.5px solid transparent;
+        }
+
+        .unit-list-item:active {
+            transform: scale(0.99);
+            border-color: var(--primary-light);
+        }
+
+        .unit-number {
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius-md);
+            background: var(--primary-pale);
+            color: var(--primary-dark);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: var(--text-base);
+            flex-shrink: 0;
+        }
+
+        .unit-number.completed {
+            background: var(--primary-dark);
+            color: var(--text-white);
+        }
+
+        .unit-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .unit-name {
+            font-size: var(--text-base);
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+
+        .unit-meta {
+            font-size: var(--text-sm);
+            color: var(--text-gray);
+            margin-top: 2px;
+        }
+
+        .unit-chevron {
+            color: var(--text-light);
+            font-size: var(--text-base);
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <a href="class.html" class="back-btn"><i class="ti ti-arrow-left"></i></a>
+            <h1 class="header-title" id="textbookName">교과서</h1>
+            <div class="header-action"></div>
+        </header>
+
+        <div class="page-content">
+            <p class="text-gray mb-2" style="font-size: var(--text-sm);">학습할 유닛을 선택하세요</p>
+            <div id="unitList"></div>
+        </div>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav"><a href="class.html" class="nav-item"><span class="nav-icon"><i class="ti ti-home"></i></span><span>홈</span></a><a href="profile.html" class="nav-item"><span class="nav-icon"><i class="ti ti-user"></i></span><span>프로필</span></a></nav>
+    </div>
+
+    <script src="../js/supabase.js"></script>
+    <script>
+        let units = [];
+        let textbook = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            textbook = JSON.parse(sessionStorage.getItem('currentTextbook'));
+            if (!textbook) { window.location.href = 'class.html'; return; }
+            document.getElementById('textbookName').textContent = textbook.name;
+            await loadUnits();
+        });
+
+        async function loadUnits() {
+            showLoading('유닛 불러오는 중...');
+            try {
+                if (textbook.isSample) {
+                    const sampleUnits = JSON.parse(sessionStorage.getItem('sampleUnits') || '[]');
+                    units = sampleUnits.map(u => ({
+                        id: u.id, name: u.name,
+                        sentenceCount: u.sentences?.length || 0,
+                        isSample: true, sentences: u.sentences
+                    }));
+                } else if (textbook.id?.startsWith('demo-')) {
+                    units = [{ id: 'demo-unit', name: 'Unit 1: 샘플 유닛', sentenceCount: 0 }];
+                } else {
+                    const { data, error } = await getUnitsByTextbook(textbook.id);
+                    if (error) throw error;
+                    units = data || [];
+                }
+            } catch (e) {
+                console.error('Failed to load units:', e);
+                units = [];
+            }
+            hideLoading();
+            renderUnits();
+        }
+
+        function renderUnits() {
+            const list = document.getElementById('unitList');
+            if (units.length === 0) {
+                list.innerHTML = `
+                    <div class="card text-center" style="padding: var(--sp-10);">
+                        <p class="text-gray">아직 유닛이 없습니다</p>
+                        <p class="text-gray" style="font-size: var(--text-sm); margin-top: var(--sp-2);">선생님이 데이터를 업로드하면 여기에 표시됩니다</p>
+                    </div>`;
+                return;
+            }
+
+            list.innerHTML = units.map((unit, idx) => {
+                const completed = unit.completed || false;
+                return `
+                <div class="unit-list-item" onclick="selectUnit('${unit.id}')">
+                    <div class="unit-number ${completed ? 'completed' : ''}">
+                        ${completed ? '<i class="ti ti-check"></i>' : idx + 1}
+                    </div>
+                    <div class="unit-info">
+                        <div class="unit-name">${unit.name}</div>
+                        <div class="unit-meta">${unit.sentenceCount ? unit.sentenceCount + '개 문장' : (unit.order_num || idx + 1) + '번째 유닛'}</div>
+                    </div>
+                    <span class="unit-chevron"><i class="ti ti-chevron-right"></i></span>
+                </div>`;
+            }).join('');
+        }
+
+        async function selectUnit(id) {
+            const unit = units.find(u => u.id === id);
+            if (!unit) return;
+
+            showLoading('문장 불러오는 중...');
+            try {
+                let formattedSentences;
+                if (unit.isSample && unit.sentences) {
+                    formattedSentences = unit.sentences;
+                } else {
+                    const { data: sentences, error } = await getSentencesByUnit(id);
+                    if (error) throw error;
+                    formattedSentences = (sentences || []).map(s => ({ en: s.sentence_en, kr: s.sentence_kr || '' }));
+                }
+                sessionStorage.setItem('currentUnit', JSON.stringify(unit));
+                sessionStorage.setItem('currentSentences', JSON.stringify(formattedSentences));
+                sessionStorage.setItem('currentUnitTitle', unit.title || 'Unit');
+                hideLoading();
+                window.location.href = 'learn-step1.html';
+            } catch (e) {
+                console.error(e);
+                hideLoading();
+                showToast('문장을 불러오는데 실패했습니다', 'error');
+            }
+        }
+    </script>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('../service-worker.js').then(() => {}).catch(() => {});
+            });
+        }
+    </script>
+</body>
+
+</html>

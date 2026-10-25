@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>교재 관리 - TES Speaking</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        .upload-area {
+            border: 2px dashed var(--border);
+            border-radius: var(--radius-lg);
+            padding: var(--sp-10) var(--sp-5);
+            text-align: center;
+            margin-bottom: var(--sp-5);
+            transition: all var(--transition);
+            cursor: pointer;
+            background: var(--bg-white);
+        }
+
+        .upload-area:hover,
+        .upload-area.dragover {
+            border-color: var(--primary);
+            background: var(--primary-pale);
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            color: var(--primary);
+            margin-bottom: var(--sp-4);
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: var(--sp-4);
+        }
+
+        .folder-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: var(--sp-4);
+            margin-bottom: var(--sp-8);
+        }
+
+        .folder-card {
+            background: var(--bg-white);
+            border: 2px solid transparent;
+            border-radius: var(--radius-lg);
+            padding: var(--sp-5);
+            cursor: pointer;
+            transition: all var(--transition);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .folder-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .folder-card.drag-over {
+            border-color: var(--primary);
+            background: var(--primary-pale);
+            transform: scale(1.02);
+        }
+
+        .folder-icon {
+            width: 48px; height: 48px;
+            background: var(--primary-pale);
+            color: var(--primary);
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: var(--text-2xl);
+            margin-bottom: var(--sp-3);
+        }
+
+        .folder-title {
+            font-weight: 600;
+            font-size: var(--text-lg);
+            margin-bottom: var(--sp-1);
+            color: var(--text-dark);
+        }
+
+        .folder-meta { font-size: var(--text-sm); color: var(--text-muted); }
+
+        .add-folder-card {
+            border: 2px dashed var(--border);
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            color: var(--text-muted); background: transparent;
+            min-height: 140px;
+        }
+
+        .add-folder-card:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            background: var(--primary-pale);
+        }
+
+        .textbook-list-container {
+            background: var(--bg-light);
+            border-radius: var(--radius-xl);
+            padding: var(--sp-6);
+            min-height: 200px;
+        }
+
+        .textbook-item {
+            display: flex; align-items: center;
+            gap: var(--sp-3);
+            padding: var(--sp-3) var(--sp-4);
+            background: var(--bg-white);
+            border-radius: var(--radius-md);
+            margin-bottom: var(--sp-3);
+            box-shadow: var(--shadow-sm);
+            cursor: grab;
+            transition: all var(--transition);
+        }
+
+        .textbook-item:active { cursor: grabbing; }
+
+        .textbook-item.dragging {
+            opacity: 0.5;
+            background: var(--bg-gray);
+            border: 2px dashed var(--text-muted);
+        }
+
+        .textbook-item:hover { transform: translateX(4px); }
+
+        .textbook-item-icon {
+            width: 40px; height: 40px;
+            background: var(--bg-light);
+            border-radius: var(--radius-sm);
+            display: flex; align-items: center; justify-content: center;
+            font-size: var(--text-xl);
+            flex-shrink: 0;
+        }
+
+        .textbook-item-info { flex: 1; min-width: 0; }
+        .textbook-item-name { font-weight: 600; color: var(--text-dark); word-break: break-all; }
+        .textbook-item-meta { font-size: var(--text-sm); color: var(--text-muted); }
+        .textbook-item-actions { display: flex; align-items: center; gap: var(--sp-1); flex-shrink: 0; }
+
+        .action-btn {
+            width: 36px; height: 36px;
+            border: none; border-radius: var(--radius-sm);
+            cursor: pointer; display: flex;
+            align-items: center; justify-content: center;
+            font-size: var(--text-lg);
+            transition: all var(--transition);
+        }
+
+        .action-btn-move { background: var(--primary-pale); color: var(--primary-dark); }
+        .action-btn-move:hover { background: var(--primary); color: white; }
+        .action-btn-delete { background: var(--wrong-pale); color: var(--wrong); }
+        .action-btn-delete:hover { background: var(--wrong); color: white; }
+
+        .folder-select-list {
+            display: flex; flex-direction: column;
+            gap: var(--sp-2);
+            max-height: 50vh;
+            overflow-y: auto;
+        }
+
+        .folder-select-item {
+            display: flex; align-items: center;
+            gap: var(--sp-3);
+            padding: var(--sp-3) var(--sp-4);
+            background: var(--bg-light);
+            border: 1.5px solid transparent;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: all var(--transition);
+        }
+
+        .folder-select-item:hover {
+            border-color: var(--primary);
+            background: var(--primary-pale);
+        }
+
+        .modal-body-scroll { max-height: 60vh; overflow-y: auto; padding-right: var(--sp-2); }
+
+        .modal {
+            display: none; position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            align-items: center; justify-content: center;
+        }
+
+        .modal.show { display: flex; }
+
+        .modal-content {
+            background: var(--bg-white);
+            padding: var(--sp-6);
+            border-radius: var(--radius-xl);
+            width: 90%; max-width: 500px;
+            box-shadow: var(--shadow-lg);
+            animation: t-slide-up 0.3s var(--ease);
+        }
+
+        .modal-header {
+            display: flex; justify-content: space-between;
+            align-items: center; margin-bottom: var(--sp-5);
+        }
+
+        .close-btn {
+            background: none; border: none;
+            font-size: var(--text-2xl); cursor: pointer;
+            color: var(--text-muted);
+        }
+
+        .btn-sm { padding: var(--sp-1) var(--sp-3); font-size: var(--text-sm); }
+    </style>
+
+
+    <link rel="icon" type="image/png" sizes="32x32" href="../favicon.png">
+    <link rel="apple-touch-icon" href="../favicon.png">
+    <link rel="manifest" href="../manifest.json">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <a href="dashboard.html" class="back-btn"><i class="ti ti-arrow-left"></i></a>
+            <h1 class="header-title">교재 관리</h1>
+            <div style="width: 40px;"></div>
+        </header>
+
+        <div class="content-area" style="padding-bottom: 40px;">
+            <!-- Upload Area -->
+            <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+                <input type="file" id="fileInput" accept=".xlsx, .xls" style="display: none;">
+                <div class="upload-icon">
+                    <i class="ti ti-file-upload"></i>
+                </div>
+                <h3>Excel 파일 업로드</h3>
+                <p style="color: var(--text-gray); margin-top: 8px;">클릭하거나 파일을 여기로 드래그하세요</p>
+                <p class="upload-text" style="font-size: 0.8rem; color: var(--text-light); margin-top: 4px;">
+                    형식: Unit | 영어 문장 | 한국어 문장
+                </p>
+            </div>
+
+            <div id="loadingState" style="text-align: center; padding: 40px; display: none;">
+                <i class="ti ti-loader" style="font-size: 2rem; animation: spin 1s linear infinite;"></i>
+                <p style="color: var(--text-gray); margin-top: 10px;">데이터 처리 중...</p>
+            </div>
+
+            <!-- Folders Section -->
+            <div class="section-header">
+                <h3 style="margin: 0;">📁 폴더</h3>
+            </div>
+
+            <div class="folder-grid" id="folderGrid">
+                <!-- Folders and Add Button will be rendered here -->
+            </div>
+
+            <!-- Uncategorized Textbooks Section -->
+            <div class="section-header">
+                <h3 style="margin: 0;">📄 교재 목록</h3>
+                <p style="font-size: 0.9rem; color: var(--text-gray); margin: 0;">
+                    폴더 이동 또는 삭제 가능
+                </p>
+            </div>
+
+            <div class="textbook-list-container" id="uncategorizedList" ondragover="allowDrop(event)"
+                ondrop="dropToUncategorized(event)">
+                <!-- Uncategorized items will be rendered here -->
+                <div style="text-align: center; padding: 20px; color: var(--text-gray);">
+                    <i class="ti ti-loader" style="animation: spin 1s infinite linear;"></i> 로딩 중...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Folder Detail Modal -->
+    <div class="modal" id="folderModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="folderModalTitle">폴더 내용</h3>
+                <button class="close-btn" onclick="closeFolderModal()">&times;</button>
+            </div>
+            <div class="modal-body-scroll" id="folderModalBody">
+                <!-- Textbooks in this folder -->
+            </div>
+            <div style="margin-top: 20px; text-align: right;">
+                <button class="btn btn-outline btn-sm" onclick="renameFolderFromModal()">폴더 이름 변경</button>
+                <button class="btn btn-outline btn-sm" style="color: #e03131; border-color: #e03131;"
+                    onclick="deleteFolderFromModal()">폴더 삭제</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Folder Modal -->
+    <div class="modal" id="addFolderModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">새 폴더 만들기</h3>
+                <button class="close-btn" onclick="closeAddFolderModal()">&times;</button>
+            </div>
+            <input type="text" id="newFolderName" class="form-input" placeholder="폴더 이름 (예: 초등, 중등)"
+                style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 20px;">
+            <button class="btn btn-primary btn-block" onclick="createNewFolder()"
+                style="width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px;">생성</button>
+        </div>
+    </div>
+
+    <!-- Move to Folder Modal -->
+    <div class="modal" id="moveFolderModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">📁 폴더 선택</h3>
+                <button class="close-btn" onclick="closeMoveFolderModal()">&times;</button>
+            </div>
+            <p style="color: var(--text-gray); margin-bottom: 16px; font-size: 0.9rem;">이동할 폴더를 선택하세요</p>
+            <div class="folder-select-list" id="folderSelectList">
+                <!-- Folder options rendered here -->
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/supabase.js"></script>
+    <script>
+        let allTextbooks = [];
+        let folders = new Set();
+        let currentOpenFolder = null; // Currently open folder name in modal
+        let parsedData = null; // Excel data
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadTextbooks();
+            setupFileUpload();
+        });
+
+        async function loadTextbooks() {
+            try {
+                const { data, error } = await getTextbooks();
+                if (error) throw error;
+
+                allTextbooks = data || [];
+
+                // Extract unique folders
+                folders = new Set();
+                allTextbooks.forEach(tb => {
+                    if (tb.folder && tb.folder.trim()) {
+                        folders.add(tb.folder.trim());
+                    }
+                });
+
+                renderUI();
+
+            } catch (err) {
+                console.error('Load error:', err);
+            }
+        }
+
+        function renderUI() {
+            renderFolders();
+            renderUncategorizedList();
+        }
+
+        function renderFolders() {
+            const grid = document.getElementById('folderGrid');
+            const sortedFolders = Array.from(folders).sort((a, b) =>
+                a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
+            );
+
+            let html = sortedFolders.map(folderName => {
+                const count = allTextbooks.filter(t => t.folder === folderName).length;
+                return `
+                    <div class="folder-card" 
+                         onclick="openFolder('${folderName}')"
+                         ondragover="allowDrop(event)" 
+                         ondrop="dropToFolder(event, '${folderName}')"
+                         ondragleave="leaveDrag(event)">
+                        <div class="folder-icon">
+                            <i class="ti ti-folder"></i>
+                        </div>
+                        <div class="folder-title">${folderName}</div>
+                        <div class="folder-meta">${count}개 교재</div>
+                    </div>
+                `;
+            }).join('');
+
+            // Add "New Folder" button
+            html += `
+                <div class="folder-card add-folder-card" onclick="openAddFolderModal()">
+                    <i class="ti ti-plus" style="font-size: 32px; margin-bottom: 8px;"></i>
+                    <span>새 폴더</span>
+                </div>
+            `;
+
+            grid.innerHTML = html;
+        }
+
+        function renderUncategorizedList() {
+            const list = document.getElementById('uncategorizedList');
+            const uncategorized = allTextbooks.filter(t => !t.folder || !t.folder.trim());
+
+            if (uncategorized.length === 0) {
+                list.innerHTML = `
+                    <div style="text-align: center; color: var(--text-gray); padding: 20px;">
+                        <i class="ti ti-check-circle" style="font-size: 32px; margin-bottom: 8px; opacity: 0.5;"></i>
+                        <p>모든 교재가 폴더에 정리되었습니다!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            list.innerHTML = uncategorized.map(tb => `
+                <div class="textbook-item" draggable="true" ondragstart="drag(event, '${tb.id}')">
+                    <div class="textbook-item-icon">
+                        <i class="ti ti-file-text"></i>
+                    </div>
+                    <div class="textbook-item-info">
+                        <div class="textbook-item-name">${tb.name}</div>
+                        <div class="textbook-item-meta">${tb.grade || ''}</div>
+                    </div>
+                    <div class="textbook-item-actions">
+                        <button class="action-btn action-btn-move" onclick="event.stopPropagation(); openMoveFolderModal('${tb.id}')" title="폴더로 이동">
+                            <i class="ti ti-folder-plus"></i>
+                        </button>
+                        <button class="action-btn action-btn-delete" onclick="event.stopPropagation(); deleteTextbook('${tb.id}')" title="삭제">
+                            <i class="ti ti-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // ================= Drag & Drop Logic =================
+
+        function allowDrop(ev) {
+            ev.preventDefault();
+            // Highlight drop target
+            if (ev.currentTarget.classList.contains('folder-card')) {
+                ev.currentTarget.classList.add('drag-over');
+            }
+        }
+
+        function leaveDrag(ev) {
+            if (ev.currentTarget.classList.contains('folder-card')) {
+                ev.currentTarget.classList.remove('drag-over');
+            }
+        }
+
+        function drag(ev, id) {
+            ev.dataTransfer.setData("text/plain", id);
+            ev.target.classList.add('dragging');
+        }
+
+        async function dropToFolder(ev, folderName) {
+            ev.preventDefault();
+            ev.currentTarget.classList.remove('drag-over');
+
+            const id = ev.dataTransfer.getData("text");
+            if (!id) return;
+
+            // Optimistic update
+            const tbIndex = allTextbooks.findIndex(t => t.id === id);
+            if (tbIndex === -1) return;
+
+            const oldFolder = allTextbooks[tbIndex].folder;
+            allTextbooks[tbIndex].folder = folderName;
+            renderUI(); // Re-render immediately
+
+            // DB Update
+            try {
+                const client = await getSupabase();
+                const { error } = await client
+                    .from('textbooks')
+                    .update({ folder: folderName })
+                    .eq('id', id);
+
+                if (error) throw error;
+                showToast(`'${folderName}' 폴더로 이동됨`, 'success');
+            } catch (err) {
+                console.error("Move failed:", err);
+                showToast("이동 실패", 'error');
+                // Revert
+                allTextbooks[tbIndex].folder = oldFolder;
+                renderUI();
+            }
+        }
+
+        async function dropToUncategorized(ev) {
+            ev.preventDefault();
+            const id = ev.dataTransfer.getData("text");
+            if (!id) return;
+
+            // Only act if coming from a folder (dragging from list to list does nothing)
+            // But we can just set folder to null to be safe
+            const tbIndex = allTextbooks.findIndex(t => t.id === id);
+            if (tbIndex === -1) return;
+
+            if (!allTextbooks[tbIndex].folder) return; // Already uncategorized
+
+            const oldFolder = allTextbooks[tbIndex].folder;
+            allTextbooks[tbIndex].folder = null;
+            renderUI();
+
+            try {
+                const client = await getSupabase();
+                const { error } = await client
+                    .from('textbooks')
+                    .update({ folder: null })
+                    .eq('id', id);
+
+                if (error) throw error;
+                showToast("미분류로 이동됨", 'success');
+            } catch (err) {
+                console.error("Move failed:", err);
+                showToast("이동 실패", 'error');
+                allTextbooks[tbIndex].folder = oldFolder;
+                renderUI();
+            }
+        }
+
+
+        // ================= Move to Folder Modal (Mobile Friendly) =================
+
+        let pendingMoveTextbookId = null;
+
+        function openMoveFolderModal(textbookId) {
+            pendingMoveTextbookId = textbookId;
+            const list = document.getElementById('folderSelectList');
+            const sortedFolders = Array.from(folders).sort((a, b) =>
+                a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
+            );
+
+            if (sortedFolders.length === 0) {
+                list.innerHTML = '<p style="text-align:center; color:var(--text-gray); padding:20px;">폴더가 없습니다. 먼저 폴더를 만들어 주세요.</p>';
+            } else {
+                list.innerHTML = sortedFolders.map(fname => `
+                    <div class="folder-select-item" onclick="confirmMoveToFolder('${fname}')">
+                        <i class="ti ti-folder" style="font-size:24px; color:var(--primary);"></i>
+                        <span style="font-weight:500;">${fname}</span>
+                        <span style="margin-left:auto; color:var(--text-gray); font-size:0.85rem;">${allTextbooks.filter(t => t.folder === fname).length}개</span>
+                    </div>
+                `).join('');
+            }
+
+            document.getElementById('moveFolderModal').classList.add('show');
+        }
+
+        function closeMoveFolderModal() {
+            document.getElementById('moveFolderModal').classList.remove('show');
+            pendingMoveTextbookId = null;
+        }
+
+        async function confirmMoveToFolder(folderName) {
+            if (!pendingMoveTextbookId) return;
+
+            const id = pendingMoveTextbookId;
+            closeMoveFolderModal();
+
+            const tbIndex = allTextbooks.findIndex(t => t.id === id);
+            if (tbIndex === -1) return;
+
+            const oldFolder = allTextbooks[tbIndex].folder;
+            allTextbooks[tbIndex].folder = folderName;
+            renderUI();
+
+            try {
+                const client = await getSupabase();
+                const { error } = await client
+                    .from('textbooks')
+                    .update({ folder: folderName })
+                    .eq('id', id);
+
+                if (error) throw error;
+                showToast(`'${folderName}' 폴더로 이동됨`, 'success');
+            } catch (err) {
+                console.error('Move failed:', err);
+                showToast('이동 실패', 'error');
+                allTextbooks[tbIndex].folder = oldFolder;
+                renderUI();
+            }
+        }
+
+        // ================= Folder Management =================
+
+        function openAddFolderModal() {
+            document.getElementById('newFolderName').value = '';
+            document.getElementById('addFolderModal').classList.add('show');
+            document.getElementById('newFolderName').focus();
+        }
+
+        function closeAddFolderModal() {
+            document.getElementById('addFolderModal').classList.remove('show');
+        }
+
+        function createNewFolder() {
+            const name = document.getElementById('newFolderName').value.trim();
+            if (!name) return;
+
+            if (folders.has(name)) {
+                showToast('이미 존재하는 폴더입니다.', 'error');
+                return;
+            }
+
+            // Just add to local set for now (until a textbook is added to it)
+            // Or typically we need a textbook in it to persist if we don't have a folders table.
+            // Since we rely on 'folder' column in textbooks, empty folders strictly speaking don't exist in DB
+            // But for UX, we can show it temporarily.
+            // Workaround: We will just add it to 'folders' set and re-render. 
+            // It will disappear on refresh if empty, which is a known limitation of this schema.
+            // To fix this proper, we'd need a 'folders' table.
+            // For now, let's warn user or just let it be ephemeral.
+
+            folders.add(name);
+            renderUI();
+            closeAddFolderModal();
+            showToast('폴더 생성됨 (교재를 넣어야 저장됩니다)', 'success');
+        }
+
+        function openFolder(folderName) {
+            currentOpenFolder = folderName;
+            document.getElementById('folderModalTitle').textContent = folderName;
+
+            const modalBody = document.getElementById('folderModalBody');
+            const folderTextbooks = allTextbooks.filter(t => t.folder === folderName);
+
+            modalBody.innerHTML = folderTextbooks.map(tb => `
+                <div class="textbook-item">
+                    <div class="textbook-item-icon">
+                        <i class="ti ti-file-text"></i>
+                    </div>
+                    <div class="textbook-item-info">
+                        <div class="textbook-item-name">${tb.name}</div>
+                    </div>
+                    <button class="btn btn-sm btn-outline" onclick="removeFromFolder('${tb.id}')">꺼내기</button>
+                    <button class="btn btn-sm" style="color:#e03131; border:none; background:none;" onclick="deleteTextbook('${tb.id}')"><i class="ti ti-trash"></i></button>
+                </div>
+            `).join('');
+
+            if (folderTextbooks.length === 0) {
+                modalBody.innerHTML = '<p class="text-center text-gray">폴더가 비었습니다.</p>';
+            }
+
+            document.getElementById('folderModal').classList.add('show');
+        }
+
+        function closeFolderModal() {
+            document.getElementById('folderModal').classList.remove('show');
+            currentOpenFolder = null;
+        }
+
+        async function removeFromFolder(id) {
+            // Optimistic
+            const tbIndex = allTextbooks.findIndex(t => t.id === id);
+            if (tbIndex === -1) return;
+
+            const oldFolder = allTextbooks[tbIndex].folder;
+            allTextbooks[tbIndex].folder = null;
+
+            // Re-render modal content
+            openFolder(currentOpenFolder); // Refresh current modal
+            renderFolders(); // Refresh background
+            renderUncategorizedList();
+
+            try {
+                const client = await getSupabase();
+                const { error } = await client
+                    .from('textbooks')
+                    .update({ folder: null })
+                    .eq('id', id);
+                if (error) throw error;
+            } catch (err) {
+                showToast('오류 발생', 'error');
+                allTextbooks[tbIndex].folder = oldFolder;
+                renderUI();
+            }
+        }
+
+        async function deleteTextbook(id) {
+            if (!confirm("정말 삭제하시겠습니까?")) return;
+
+            try {
+                const client = await getSupabase();
+                const { error } = await client.from('textbooks').delete().eq('id', id);
+
+                if (error) throw error;
+
+                // Local update
+                allTextbooks = allTextbooks.filter(t => t.id !== id);
+
+                if (currentOpenFolder) {
+                    openFolder(currentOpenFolder);
+                }
+                renderUI();
+                showToast('삭제되었습니다', 'success');
+            } catch (err) {
+                showToast('삭제 실패', 'error');
+            }
+        }
+
+
+
+        async function renameFolderFromModal() {
+            if (!currentOpenFolder) return;
+
+            const newName = prompt('새 폴더 이름을 입력하세요:', currentOpenFolder);
+            if (!newName || newName.trim() === '' || newName === currentOpenFolder) return;
+
+            const oldName = currentOpenFolder;
+            const cleanNewName = newName.trim();
+
+            if (folders.has(cleanNewName)) {
+                showToast('이미 존재하는 폴더 이름입니다', 'error');
+                return;
+            }
+
+            // Optimistic Update
+            folders.delete(oldName);
+            folders.add(cleanNewName);
+
+            allTextbooks.forEach(tb => {
+                if (tb.folder === oldName) {
+                    tb.folder = cleanNewName;
+                }
+            });
+
+            document.getElementById('folderModalTitle').textContent = cleanNewName;
+            currentOpenFolder = cleanNewName;
+            renderUI();
+
+            try {
+                const client = await getSupabase();
+                const { error } = await client
+                    .from('textbooks')
+                    .update({ folder: cleanNewName })
+                    .eq('folder', oldName);
+
+                if (error) throw error;
+                showToast('폴더 이름이 변경되었습니다', 'success');
+            } catch (err) {
+                console.error(err);
+                showToast('변경 실패', 'error');
+                loadTextbooks();
+            }
+        }
+
+        async function deleteFolderFromModal() {
+            if (!currentOpenFolder) return;
+            if (!confirm(`'${currentOpenFolder}' 폴더를 삭제하시겠습니까?\n교재는 삭제되지 않고 미분류로 이동됩니다.`)) return;
+
+            const folderName = currentOpenFolder;
+
+            // Optimistic Update
+            folders.delete(folderName);
+            allTextbooks.forEach(tb => {
+                if (tb.folder === folderName) {
+                    tb.folder = null;
+                }
+            });
+
+            closeFolderModal();
+            renderUI();
+
+            try {
+                const client = await getSupabase();
+                // Set folder = null for all textbooks in this folder
+                const { error } = await client
+                    .from('textbooks')
+                    .update({ folder: null })
+                    .eq('folder', folderName);
+
+                if (error) throw error;
+                showToast('폴더가 삭제되었습니다', 'success');
+            } catch (err) {
+                console.error(err);
+                showToast('삭제 실패', 'error');
+                loadTextbooks();
+            }
+        }
+
+        // Excel Upload Logic (Existing logic reused)
+        function setupFileUpload() {
+            const uploadArea = document.getElementById('uploadArea');
+            const fileInput = document.getElementById('fileInput');
+
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('dragover');
+            });
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                if (e.dataTransfer.files[0]) processFile(e.dataTransfer.files[0]);
+            });
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files[0]) processFile(e.target.files[0]);
+            });
+        }
+
+        function processFile(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const workbook = XLSX.read(e.target.result, { type: 'binary' });
+                    parsedData = {
+                        name: file.name.replace(/\.[^/.]+$/, ''),
+                        units: {}
+                        // ... (Parsing logic same as before, simplified for brevity)
+                    };
+
+                    // Full parsing logic copy needed? Yes, to function.
+                    // Copying the parsing logic from previous version...
+                    workbook.SheetNames.forEach((sheetName) => {
+                        const sheet = workbook.Sheets[sheetName];
+                        const data = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+                        parsedData.units[sheetName] = [];
+                        for (let i = 1; i < data.length; i++) {
+                            const row = data[i];
+                            if (row.length >= 1 && row[0]) {
+                                const en = row[0]?.toString().trim() || '';
+                                const kr = row[1]?.toString().trim() || '';
+                                if (en) parsedData.units[sheetName].push({ en, kr });
+                            }
+                        }
+                    });
+
+                    uploadData(); // Upload immediately for smoother UX? Or confirm?
+                    // To keep it simple as drag-drop requested:
+                    // Let's auto-upload to "Uncategorized"
+                } catch (err) {
+                    console.error(err);
+                    showToast('파일 처리 실패', 'error');
+                }
+            };
+            reader.readAsBinaryString(file);
+        }
+
+        async function uploadData() {
+            if (!parsedData) return;
+            document.getElementById('loadingState').style.display = 'block';
+            document.getElementById('uploadArea').style.display = 'none';
+
+            try {
+                const result = await importTextbookData(parsedData);
+                if (result.error) throw new Error(result.error);
+
+                await loadTextbooks();
+                showToast('업로드 완료! 아래 목록에서 확인하세요.', 'success');
+            } catch (err) {
+                showToast('업로드 실패: ' + err.message, 'error');
+            } finally {
+                document.getElementById('loadingState').style.display = 'none';
+                document.getElementById('uploadArea').style.display = 'block';
+                parsedData = null;
+            }
+        }
+
+        // Helper: Toast
+        function showToast(msg, type = 'success') {
+            // Check if toast container exists
+            let container = document.getElementById('toast-container');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'toast-container';
+                container.style.cssText = 'position: fixed; bottom: 20px; right: 20px; z-index: 9999;';
+                document.body.appendChild(container);
+            }
+
+            const toast = document.createElement('div');
+            toast.style.cssText = `
+                background: ${type === 'error' ? '#fa5252' : '#20c997'};
+                color: white;
+                padding: 12px 24px;
+                border-radius: 8px;
+                margin-top: 10px;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                animation: slideIn 0.3s forwards;
+            `;
+            toast.textContent = msg;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+    </script>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('../service-worker.js')
+                    .then(reg => console.log('SW registered'))
+                    .catch(err => console.log('SW registration failed: ', err));
+            });
+        }
+    </script>
+</body>
+
+</html>

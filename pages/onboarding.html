@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>TES Speaking - 설정</title>
+    <meta name="theme-color" content="#2D9596">
+    <link rel="stylesheet" href="../css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background: var(--bg-white);
+        }
+
+        .onboarding-container {
+            min-height: 100vh;
+            min-height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            padding: 40px 24px;
+            max-width: 480px;
+            margin: 0 auto;
+        }
+
+        .onboarding-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .onboarding-step {
+            font-size: 0.875rem;
+            color: var(--primary);
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .onboarding-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            line-height: 1.4;
+            color: var(--text-dark);
+        }
+
+        .onboarding-subtitle {
+            font-size: 0.9rem;
+            color: var(--text-gray);
+            margin-top: 8px;
+        }
+
+        .step-section {
+            display: none;
+        }
+
+        .step-section.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .level-section {
+            margin-bottom: 32px;
+        }
+
+        .section-label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 16px;
+        }
+
+        .chip-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+
+        .chip-grid-2 {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .level-chip {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 14px 16px;
+            background: var(--bg-white);
+            border: 2px solid var(--bg-gray);
+            border-radius: 25px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: var(--text-dark);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+
+        .level-chip:hover {
+            border-color: var(--primary);
+            background: var(--primary-pale);
+        }
+
+        .level-chip.selected {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        .sublevel-section {
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px solid var(--bg-gray);
+            display: none;
+        }
+
+        .sublevel-section.visible {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .sublevel-chip {
+            padding: 12px 16px;
+            background: var(--bg-light);
+            border: 2px solid transparent;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text-gray);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+
+        .sublevel-chip:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .sublevel-chip.selected {
+            background: var(--primary-pale);
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        /* Class Selection Styles */
+        .class-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .class-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 16px;
+            background: var(--bg-light);
+            border: 2px solid transparent;
+            border-radius: var(--radius-lg);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .class-item:hover {
+            border-color: var(--primary);
+        }
+
+        .class-item.selected {
+            background: var(--primary-pale);
+            border-color: var(--primary);
+        }
+
+        .class-item input {
+            display: none;
+        }
+
+        .class-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+        }
+
+        .class-icon.school {
+            background: #EDE9FE;
+            color: #8B5CF6;
+        }
+
+        .class-icon.subject {
+            background: #D1FAE5;
+            color: #10B981;
+        }
+
+        .class-info {
+            flex: 1;
+        }
+
+        .class-name {
+            font-weight: 500;
+            color: var(--text-dark);
+        }
+
+        .class-type {
+            font-size: 0.75rem;
+            color: var(--text-gray);
+        }
+
+        .checkmark {
+            width: 24px;
+            height: 24px;
+            border: 2px solid var(--border);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: transparent;
+            transition: all 0.2s ease;
+        }
+
+        .class-item.selected .checkmark {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        .empty-classes {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-gray);
+        }
+
+        .bottom-section {
+            margin-top: auto;
+            padding-top: 24px;
+        }
+
+        .selected-display {
+            text-align: center;
+            padding: 16px;
+            background: var(--primary-pale);
+            border-radius: 16px;
+            margin-bottom: 16px;
+            display: none;
+        }
+
+        .selected-display.visible {
+            display: block;
+        }
+
+        .selected-label {
+            font-size: 0.85rem;
+            color: var(--text-gray);
+        }
+
+        .selected-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-top: 4px;
+        }
+
+        .skip-link {
+            display: block;
+            text-align: center;
+            margin-top: 16px;
+            color: var(--text-gray);
+            font-size: 0.875rem;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .step-indicator {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .step-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--bg-gray);
+        }
+
+        .step-dot.active {
+            background: var(--primary);
+            width: 24px;
+            border-radius: 4px;
+        }
+    </style>
+    <link rel="icon" type="image/png" sizes="32x32" href="../favicon.png">
+    <link rel="apple-touch-icon" href="../favicon.png">
+    <link rel="manifest" href="../manifest.json">
+</head>
+
+<body>
+    <div class="onboarding-container">
+        <!-- Step Indicator -->
+        <div class="step-indicator">
+            <div class="step-dot active" id="dot1"></div>
+            <div class="step-dot" id="dot2"></div>
+        </div>
+
+        <!-- Step 1: Level Selection -->
+        <div class="step-section active" id="step1">
+            <div class="onboarding-header">
+                <div class="onboarding-step">STEP 1 / 2 - 레벨 선택 📚</div>
+                <h1 class="onboarding-title">현재 영어 레벨을<br>선택해주세요</h1>
+                <p class="onboarding-subtitle">나중에 프로필에서 변경할 수 있어요</p>
+            </div>
+
+            <div class="level-section">
+                <div class="section-label">난이도</div>
+                <div class="chip-grid chip-grid-2" id="levelGrid">
+                    <div class="level-chip" data-level="30-40">30·40</div>
+                    <div class="level-chip" data-level="50-60">50·60</div>
+                    <div class="level-chip" data-level="80-100">80·100</div>
+                    <div class="level-chip" data-level="150-200">150·200</div>
+                </div>
+                <div style="margin-top: 12px;">
+                    <div class="level-chip" data-level="NA" style="width: 100%;">N/A (레벨 없음)</div>
+                </div>
+            </div>
+
+            <div class="sublevel-section" id="sublevelSection">
+                <div class="section-label">세부 레벨</div>
+                <div class="chip-grid" id="sublevelGrid"></div>
+                <div class="chip-grid" id="sublevelGrid2" style="margin-top: 12px;"></div>
+            </div>
+
+            <div class="bottom-section">
+                <div class="selected-display" id="selectedDisplay">
+                    <div class="selected-label">선택한 레벨</div>
+                    <div class="selected-value" id="selectedValue">-</div>
+                </div>
+                <button class="btn btn-primary btn-large btn-block" id="nextBtn" disabled>
+                    다음
+                </button>
+                <a href="#" class="skip-link" id="skipStep1">건너뛰기</a>
+            </div>
+        </div>
+
+        <!-- Step 2: Class Selection -->
+        <div class="step-section" id="step2">
+            <div class="onboarding-header">
+                <div class="onboarding-step">STEP 2 / 2 - 학습반 선택 🎓</div>
+                <h1 class="onboarding-title">소속 학습반을<br>선택해주세요</h1>
+                <p class="onboarding-subtitle">해당하는 학습반을 모두 선택하세요</p>
+            </div>
+
+            <div class="section-label">🎓 학습반</div>
+            <div class="class-list" id="classListOnboarding">
+                <div class="empty-classes">불러오는 중...</div>
+            </div>
+
+            <div class="bottom-section">
+                <button class="btn btn-primary btn-large btn-block" id="completeBtn">
+                    완료
+                </button>
+                <a href="#" class="skip-link" id="skipStep2">건너뛰기</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/supabase.js"></script>
+    <script>
+        // Level structure
+        const levelData = {
+            '30-40': { row1: ['30-1', '30-2', '30-3'], row2: ['40-1', '40-2', '40-3'] },
+            '50-60': { row1: ['50-1', '50-2', '50-3'], row2: ['60-1', '60-2', '60-3'] },
+            '80-100': { row1: ['80-1', '80-2', '80-3'], row2: ['100-1', '100-2', '100-3'] },
+            '150-200': { row1: ['150-1', '150-2', '150-3'], row2: ['200-1', '200-2', '200-3'] },
+            'NA': { row1: ['기타'], row2: [] }
+        };
+
+        let selectedLevel = null;
+        let selectedSublevel = null;
+        let allClasses = [];
+        let selectedClassIds = [];
+
+        // Check if student exists
+        const student = JSON.parse(sessionStorage.getItem('currentStudent'));
+        if (!student) {
+            window.location.href = '../index.html';
+        }
+
+        // ===== STEP 1: Level Selection =====
+        document.querySelectorAll('#levelGrid .level-chip, [data-level="NA"]').forEach(chip => {
+            chip.addEventListener('click', () => {
+                document.querySelectorAll('.level-chip').forEach(c => c.classList.remove('selected'));
+                chip.classList.add('selected');
+
+                selectedLevel = chip.dataset.level;
+                selectedSublevel = null;
+
+                const sublevels = levelData[selectedLevel];
+                const sublevelSection = document.getElementById('sublevelSection');
+                const sublevelGrid = document.getElementById('sublevelGrid');
+                const sublevelGrid2 = document.getElementById('sublevelGrid2');
+
+                if (selectedLevel === 'NA') {
+                    selectedSublevel = '기타';
+                    updateLevelDisplay();
+                    sublevelSection.classList.remove('visible');
+                } else {
+                    sublevelGrid.innerHTML = sublevels.row1.map(sl =>
+                        `<div class="sublevel-chip" data-sublevel="${sl}">${sl}</div>`
+                    ).join('');
+                    sublevelGrid2.innerHTML = sublevels.row2.map(sl =>
+                        `<div class="sublevel-chip" data-sublevel="${sl}">${sl}</div>`
+                    ).join('');
+
+                    sublevelSection.classList.add('visible');
+
+                    document.querySelectorAll('.sublevel-chip').forEach(sc => {
+                        sc.addEventListener('click', selectSublevel);
+                    });
+
+                    document.getElementById('selectedDisplay').classList.remove('visible');
+                    document.getElementById('nextBtn').disabled = true;
+                }
+            });
+        });
+
+        function selectSublevel(e) {
+            document.querySelectorAll('.sublevel-chip').forEach(c => c.classList.remove('selected'));
+            e.target.classList.add('selected');
+            selectedSublevel = e.target.dataset.sublevel;
+            updateLevelDisplay();
+        }
+
+        function updateLevelDisplay() {
+            document.getElementById('selectedValue').textContent = selectedSublevel;
+            document.getElementById('selectedDisplay').classList.add('visible');
+            document.getElementById('nextBtn').disabled = false;
+        }
+
+        // Next button - go to step 2
+        document.getElementById('nextBtn').addEventListener('click', () => {
+            if (!selectedSublevel) return;
+            goToStep2();
+        });
+
+        // Skip step 1
+        document.getElementById('skipStep1').addEventListener('click', (e) => {
+            e.preventDefault();
+            selectedSublevel = '미설정';
+            goToStep2();
+        });
+
+        async function goToStep2() {
+            // Save level
+            student.grade = selectedSublevel;
+            sessionStorage.setItem('currentStudent', JSON.stringify(student));
+            localStorage.setItem('studentLevel_' + student.name, selectedSublevel);
+
+            // Update step indicator
+            document.getElementById('dot1').classList.remove('active');
+            document.getElementById('dot2').classList.add('active');
+
+            // Show step 2
+            document.getElementById('step1').classList.remove('active');
+            document.getElementById('step2').classList.add('active');
+
+            // Load classes
+            await loadClasses();
+        }
+
+        // ===== STEP 2: Class Selection =====
+        async function loadClasses() {
+            try {
+                const client = await getSupabase();
+                if (!client) {
+                    renderClasses();
+                    return;
+                }
+
+                const { data: classes, error } = await client
+                    .from('classes')
+                    .select('*')
+                    .order('name');
+
+                if (error) {
+                    console.log('Classes error:', error);
+                    allClasses = [];
+                } else {
+                    allClasses = classes || [];
+                }
+
+                renderClasses();
+            } catch (err) {
+                console.error('Load classes error:', err);
+                allClasses = [];
+                renderClasses();
+            }
+        }
+
+        function renderClasses() {
+            const container = document.getElementById('classListOnboarding');
+
+            if (allClasses.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-classes">
+                        등록된 학습반이 없습니다
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = allClasses.map(c => `
+                <label class="class-item" data-id="${c.id}">
+                    <input type="checkbox" value="${c.id}" onchange="toggleClass('${c.id}')">
+                    <div class="class-icon">
+                        🎓
+                    </div>
+                    <div class="class-info">
+                        <div class="class-name">${c.name}</div>
+                        <div class="class-type">학습반</div>
+                    </div>
+                    <div class="checkmark">✓</div>
+                </label>
+            `).join('');
+        }
+
+        function toggleClass(classId) {
+            const item = document.querySelector(`.class-item[data-id="${classId}"]`);
+            const checkbox = item.querySelector('input[type="checkbox"]');
+
+            if (checkbox.checked) {
+                item.classList.add('selected');
+                if (!selectedClassIds.includes(classId)) {
+                    selectedClassIds.push(classId);
+                }
+            } else {
+                item.classList.remove('selected');
+                selectedClassIds = selectedClassIds.filter(id => id !== classId);
+            }
+        }
+
+        // Complete button
+        document.getElementById('completeBtn').addEventListener('click', async () => {
+            await saveAndComplete();
+        });
+
+        // Skip step 2
+        document.getElementById('skipStep2').addEventListener('click', async (e) => {
+            e.preventDefault();
+            selectedClassIds = [];
+            await saveAndComplete();
+        });
+
+        async function saveAndComplete() {
+            // Update student's class assignments in Supabase
+            if (selectedClassIds.length > 0 && student.id) {
+                try {
+                    const client = await getSupabase();
+                    if (client) {
+                        // Add student to selected classes
+                        for (const classId of selectedClassIds) {
+                            const classData = allClasses.find(c => c.id === classId);
+                            if (classData) {
+                                const studentIds = classData.student_ids || [];
+                                if (!studentIds.includes(student.id)) {
+                                    studentIds.push(student.id);
+                                    await client
+                                        .from('classes')
+                                        .update({ student_ids: studentIds })
+                                        .eq('id', classId);
+                                }
+                            }
+                        }
+                    }
+                } catch (err) {
+                    console.error('Save classes error:', err);
+                }
+            }
+
+            // Mark onboarding complete
+            localStorage.setItem('onboardingComplete_' + student.name, 'true');
+
+            // Go to main
+            window.location.href = 'main.html';
+        }
+    </script>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('../service-worker.js')
+                    .then(reg => console.log('SW registered'))
+                    .catch(err => console.log('SW registration failed: ', err));
+            });
+        }
+    </script>
+</body>
+
+</html>

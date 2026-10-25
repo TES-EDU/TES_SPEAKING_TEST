@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>선생님 로그인 - TES Speaking</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="icon" type="image/png" sizes="32x32" href="../favicon.png">
+    <link rel="apple-touch-icon" href="../favicon.png">
+    <link rel="manifest" href="../manifest.json">
+</head>
+
+<body class="t-auth-body">
+    <!-- Floating background orbs -->
+    <div class="t-auth-bg-orb"></div>
+    <div class="t-auth-bg-orb"></div>
+    <div class="t-auth-bg-orb"></div>
+
+    <div class="t-auth-card">
+        <div class="t-logo-icon">👨‍🏫</div>
+        <h1 style="font-size:var(--text-2xl); font-weight:700; color:var(--text-dark); margin-bottom:var(--sp-1);">선생님 로그인</h1>
+        <p style="font-size:var(--text-sm); color:var(--text-muted); margin-bottom:var(--sp-8);">Google 계정으로 로그인하세요</p>
+
+        <span class="t-badge teacher" style="margin-bottom:var(--sp-6);">
+            <i class="ti ti-key"></i> 관리자 전용
+        </span>
+
+        <button id="googleBtn" class="t-btn-google" onclick="loginWithGoogle()"
+            style="margin-top:var(--sp-2); padding:var(--sp-4) var(--sp-5); font-weight:600;">
+            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
+            Google로 로그인
+        </button>
+
+        <div style="margin-top:var(--sp-5); padding:var(--sp-3) var(--sp-4); background:var(--primary-pale); border:1px solid var(--primary-light); border-radius:var(--radius-md); font-size:var(--text-xs); color:var(--text-muted);">
+            <i class="ti ti-shield-check"></i> 안전한 Google 인증으로 로그인됩니다
+        </div>
+
+        <a href="../index.html" style="display:inline-flex; align-items:center; gap:var(--sp-1); margin-top:var(--sp-6); color:var(--text-muted); font-size:var(--text-sm); text-decoration:none;">
+            ← 학생 로그인으로 돌아가기
+        </a>
+
+        <div class="t-dots">
+            <div class="t-dot"></div>
+            <div class="t-dot active"></div>
+            <div class="t-dot"></div>
+        </div>
+
+        <p class="t-app-version">v1.2.1</p>
+    </div>
+
+    <script src="../js/supabase.js"></script>
+    <script>
+        // Google OAuth Login
+        async function loginWithGoogle() {
+            showLoading('Google 로그인 중...');
+            try {
+                const { data, error } = await teacherLoginWithGoogle();
+                if (error) {
+                    hideLoading();
+                    showToast('Google 로그인 실패: ' + error.message, 'error');
+                }
+                // Will redirect to Google, then back to auth-callback.html
+            } catch (err) {
+                hideLoading();
+                showToast('Google 로그인 실패', 'error');
+            }
+        }
+
+        // Check if already logged in
+        document.addEventListener('DOMContentLoaded', async () => {
+            await new Promise(r => setTimeout(r, 500));
+            const { data: session } = await getTeacherSession();
+            if (session && session.user) {
+                const { data: academies } = await getMyAcademies();
+                if (academies && academies.length === 1) {
+                    setCurrentAcademy(academies[0]);
+                    window.location.href = 'dashboard.html';
+                } else if (academies && academies.length > 0) {
+                    window.location.href = 'academy-setup.html';
+                }
+            }
+        });
+    </script>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('../service-worker.js')
+                    .then(reg => console.log('SW registered'))
+                    .catch(err => console.log('SW registration failed: ', err));
+            });
+        }
+    </script>
+</body>
+
+</html>

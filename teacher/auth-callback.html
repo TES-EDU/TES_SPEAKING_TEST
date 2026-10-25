@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>로그인 처리 중... - TES Speaking</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+
+<body class="t-auth-body">
+    <div class="t-auth-card" style="padding:var(--sp-12);">
+        <div class="loading-spinner" style="margin:0 auto var(--sp-5);"></div>
+        <h2 style="font-size:var(--text-xl); font-weight:700; color:var(--text-dark); margin-bottom:var(--sp-2);">로그인 처리 중...</h2>
+        <p style="color:var(--text-muted); font-size:var(--text-sm);">잠시만 기다려 주세요</p>
+    </div>
+
+    <script src="../js/supabase.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const client = await getSupabase();
+                if (!client) {
+                    document.querySelector('p').textContent = 'DB 연결 실패';
+                    setTimeout(() => window.location.href = 'login.html', 2000);
+                    return;
+                }
+
+                let handled = false;
+
+                client.auth.onAuthStateChange(async (event, session) => {
+                    console.log('🔑 Auth event:', event, session?.user?.email);
+                    if (handled) return;
+                    if (event === 'SIGNED_IN' && session?.user) {
+                        handled = true;
+                        await handleSuccessfulLogin(session);
+                    }
+                });
+
+                const { data } = await client.auth.getSession();
+                if (data?.session?.user && !handled) {
+                    handled = true;
+                    await handleSuccessfulLogin(data.session);
+                }
+
+                setTimeout(() => {
+                    if (!handled) {
+                        console.error('Auth callback timeout');
+                        document.querySelector('p').textContent = '로그인 시간 초과';
+                        setTimeout(() => window.location.href = 'login.html', 1500);
+                    }
+                }, 10000);
+
+            } catch (err) {
+                console.error('Auth callback error:', err);
+                document.querySelector('p').textContent = '오류 발생: ' + err.message;
+                setTimeout(() => window.location.href = 'login.html', 2000);
+            }
+        });
+
+        async function handleSuccessfulLogin(session) {
+            document.querySelector('p').textContent = '로그인 성공! 이동 중...';
+
+            sessionStorage.setItem('teacherLoggedIn', 'true');
+            sessionStorage.setItem('teacherEmail', session.user.email);
+            sessionStorage.setItem('teacherName', session.user.user_metadata?.full_name || '');
+            sessionStorage.setItem('teacherAvatar', session.user.user_metadata?.avatar_url || '');
+
+            const { data: academies } = await getMyAcademies();
+
+            if (academies && academies.length > 0) {
+                if (academies.length === 1) {
+                    setCurrentAcademy(academies[0]);
+                    window.location.href = 'dashboard.html';
+                } else {
+                    window.location.href = 'academy-setup.html';
+                }
+            } else {
+                window.location.href = 'academy-setup.html';
+            }
+        }
+    </script>
+</body>
+
+</html>

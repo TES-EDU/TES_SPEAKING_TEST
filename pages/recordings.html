@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>녹화 영상 - TES Speaking</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+    <style>
+        body { font-family: 'Noto Sans KR', sans-serif; }
+        .recording-card { background: var(--bg-white); border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 16px; }
+        .recording-video { width: 100%; background: #000; }
+        .recording-info { padding: 16px; }
+        .recording-date { font-size: 0.9rem; color: var(--text-dark); font-weight: 500; }
+        .recording-meta { font-size: 0.8rem; color: var(--text-gray); margin-top: 4px; }
+        .recording-actions { display: flex; gap: 8px; margin-top: 12px; }
+        .action-btn { flex: 1; padding: 10px; border: none; border-radius: var(--radius-md); font-size: 0.85rem; font-weight: 500; cursor: pointer; transition: var(--transition); }
+        .action-btn.share { background: var(--primary-pale); color: var(--primary); }
+        .action-btn.download { background: #DBEAFE; color: #2563EB; }
+        .action-btn.delete { background: #FEE2E2; color: #DC2626; }
+        .empty-state { text-align: center; padding: 60px 20px; }
+        .empty-icon { font-size: 4rem; margin-bottom: 16px; }
+        .empty-title { font-size: 1.125rem; font-weight: 600; color: var(--text-dark); margin-bottom: 8px; }
+        .empty-text { font-size: 0.9rem; color: var(--text-gray); }
+        .info-banner { background: var(--primary-pale); padding: 16px; border-radius: var(--radius-lg); margin-bottom: 20px; }
+        .info-banner-title { font-weight: 600; color: var(--primary-dark); margin-bottom: 4px; }
+        .info-banner-text { font-size: 0.85rem; color: var(--text-gray); }
+    </style>
+    <link rel="icon" type="image/png" sizes="32x32" href="../favicon.png">
+    <link rel="apple-touch-icon" href="../favicon.png">
+    <link rel="manifest" href="../manifest.json">
+</head>
+
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <a href="profile.html" class="back-btn">←</a>
+            <h1 class="header-title">녹화 영상</h1>
+            <div class="header-action"></div>
+        </header>
+
+        <div class="page-content">
+            <div class="info-banner">
+                <div class="info-banner-title">📍 녹화 저장 위치</div>
+                <div class="info-banner-text">
+                    녹화 영상은 Supabase 클라우드 저장소에 저장됩니다.
+                    <br>저장 경로: <code>recordings/{학생ID}/{날짜}.webm</code>
+                </div>
+            </div>
+            <div id="recordingsList"></div>
+        </div>
+
+        <nav class="bottom-nav"><a href="class.html" class="nav-item"><span class="nav-icon"><i class="ti ti-home"></i></span><span>홈</span></a><a href="profile.html" class="nav-item"><span class="nav-icon"><i class="ti ti-user"></i></span><span>프로필</span></a></nav>
+    </div>
+
+    <script src="../js/supabase.js"></script>
+    <script>
+        let recordings = [];
+        const scriptCache = {};
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadRecordings();
+        });
+
+        async function loadRecordings() {
+            showLoading('녹화 불러오는 중...');
+            try {
+                const student = JSON.parse(sessionStorage.getItem('currentStudent'));
+                const studentId = student?.id || null;
+                if (!studentId) { hideLoading(); showEmptyState('로그인이 필요합니다'); return; }
+
+                const client = await getSupabase();
+                if (!client) { hideLoading(); showEmptyState(); return; }
+
+                const { data: userFiles, error: filesError } = await client.storage.from('recordings').list(studentId, { limit: 100 });
+                if (filesError) { hideLoading(); showEmptyState(); return; }
+                if (!userFiles || userFiles.length === 0) { hideLoading(); showEmptyState(); return; }
+
+                recordings = [];
+                for (const file of userFiles) {
+                    if (file.name.endsWith('.webm')) {
+                        recordings.push({ name: file.name, path: `${studentId}/${file.name}`, createdAt: file.created_at, folder: studentId });
+                    } else if (file.id === null && !file.name.includes('.')) {
+                        const { data: subFiles } = await client.storage.from('recordings').list(`${studentId}/${file.name}`, { limit: 100 });
+                        if (subFiles) {
+                            for (const subFile of subFiles) {
+                                if (subFile.name.endsWith('.webm')) {
+                                    recordings.push({ name: subFile.name, path: `${studentId}/${file.name}/${subFile.name}`, createdAt: subFile.created_at, folder: studentId });
+                                }
+                            }
+                        }
+                    }
+                }
+
+                recordings.sort((a, b) => {
+                    const timeA = Date.parse(a.createdAt) || parseInt(a.name.replace('.webm', '')) || 0;
+                    const timeB = Date.parse(b.createdAt) || parseInt(b.name.replace('.webm', '')) || 0;
+                    return timeB - timeA;
+                });
+
+                hideLoading();
+                if (recordings.length === 0) { showEmptyState(); return; }
+                renderRecordings();
+            } catch (e) {
+                console.error('Failed to load recordings:', e);
+                hideLoading();
+                showEmptyState();
+            }
+        }
+
+        async function getPublicUrl(path) {
+            const client = await getSupabase();
+            const { data } = client.storage.from('recordings').getPublicUrl(path);
+            return data.publicUrl;
+        }
+
+        async function renderRecordings() {
+            const list = document.getElementById('recordingsList');
+            if (recordings.length === 0) { showEmptyState(); return; }
+
+            const student = JSON.parse(sessionStorage.getItem('currentStudent') || '{}');
+            const isTeacher = student.role === 'teacher' || student.is_teacher === true;
+            const client = await getSupabase();
+
+            let html = '';
+            for (let i = 0; i < recordings.length; i++) {
+                const rec = recordings[i];
+                const url = await getPublicUrl(rec.path);
+                const date = new Date(rec.createdAt || Date.now());
+                const dateStr = date.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+                // Load companion script JSON
+                if (client) {
+                    try {
+                        const jsonPath = rec.path.replace('.webm', '.json');
+                        const { data: jsonBlob, error: jsonErr } = await client.storage
+                            .from('recordings').download(jsonPath);
+                        if (!jsonErr && jsonBlob) {
+                            scriptCache[rec.path] = JSON.parse(await jsonBlob.text());
+                        }
+                    } catch (e) { /* no script file */ }
+                }
+
+                html += `
+                    <div class="recording-card" data-path="${rec.path}">
+                        <video class="recording-video" controls preload="metadata">
+                            <source src="${url}" type="video/webm">
+                        </video>
+                        <div class="recording-info">
+                            <div class="recording-date">${dateStr}</div>
+                            <div class="recording-meta">${rec.name}</div>
+                            <div class="recording-actions">
+                                <button class="action-btn share" onclick="shareRecording(${i})">
+                                    <i class="ti ti-share"></i> 공유
+                                </button>
+                                <button class="action-btn download" onclick="downloadRecording('${url}', '${rec.name}')">
+                                    <i class="ti ti-download"></i> 다운로드
+                                </button>
+                                ${isTeacher ? `
+                                <button class="action-btn delete" onclick="deleteRecordingFromCard(this)">
+                                    <i class="ti ti-trash"></i> 삭제
+                                </button>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            list.innerHTML = html;
+        }
+
+        function showEmptyState() {
+            document.getElementById('recordingsList').innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon"><i class="ti ti-video-off" style="font-size: 4rem; color: var(--text-light);"></i></div>
+                    <div class="empty-title">아직 녹화가 없습니다</div>
+                    <div class="empty-text">학습 4단계에서 스피킹을 녹화하면<br>여기에 표시됩니다</div>
+                </div>
+            `;
+        }
+
+        async function shareRecording(index) {
+            const rec = recordings[index];
+            const url = await getPublicUrl(rec.path);
+
+            try {
+                const client = await getSupabase();
+                const student = JSON.parse(sessionStorage.getItem('currentStudent'));
+
+                // Generate short code
+                const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+                let code = '';
+                for (let i = 0; i < 7; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+
+                if (client) {
+                    // Get script from cache (loaded during render)
+                    let scriptEn = '', scriptKr = '';
+                    const meta = scriptCache[rec.path];
+                    if (meta && meta.sentences && meta.sentences.length > 0) {
+                        scriptEn = meta.sentences.map(s => s.en || '').join('\n');
+                        scriptKr = meta.sentences.map(s => s.kr || '').join('\n');
+                    }
+
+                    // Fallback: try sessionStorage
+                    if (!scriptEn) {
+                        try {
+                            const sentences = JSON.parse(sessionStorage.getItem('currentSentences') || '[]');
+                            if (sentences.length > 0) {
+                                scriptEn = sentences.map(s => s.en || '').join('\n');
+                                scriptKr = sentences.map(s => s.kr || '').join('\n');
+                            }
+                        } catch (e) {}
+                    }
+
+                    const { error } = await client.from('shared_links').insert([{
+                        code: code,
+                        video_url: url,
+                        student_name: student?.name || '학생',
+                        recorded_at: new Date().toISOString(),
+                        script_en: scriptEn || null,
+                        script_kr: scriptKr || null
+                    }]);
+
+                    if (!error) {
+                        const shortUrl = `${window.location.origin}/pages/share-recording.html?c=${code}`;
+                        if (navigator.share) {
+                            await navigator.share({ title: 'TES Speaking 녹화', text: '스피킹 연습 녹화', url: shortUrl });
+                        } else {
+                            navigator.clipboard.writeText(shortUrl);
+                            showToast('짧은 링크가 복사되었습니다!', 'success');
+                        }
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.log('Short link failed:', e);
+            }
+
+            // Fallback
+            if (navigator.share) {
+                try { await navigator.share({ title: 'TES Speaking 녹화', text: '스피킹 연습 녹화', url: url }); }
+                catch (e) { console.log('Share cancelled'); }
+            } else {
+                navigator.clipboard.writeText(url);
+                showToast('링크가 복사되었습니다', 'success');
+            }
+        }
+
+        async function downloadRecording(url, filename) {
+            try {
+                showToast('다운로드 준비 중...', 'info');
+                const response = await fetch(url);
+                const blob = await response.blob();
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = filename || 'recording.webm';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(link.href);
+                showToast('다운로드 시작됨', 'success');
+            } catch (e) {
+                console.error('Download error:', e);
+                showToast('다운로드 실패', 'error');
+            }
+        }
+
+        async function deleteRecording(path) {
+            if (!confirm('이 녹화를 삭제하시겠습니까?')) return;
+            showLoading('삭제 중...');
+            try {
+                const client = await getSupabase();
+                const { error } = await client.storage.from('recordings').remove([path]);
+                hideLoading();
+                if (error) { showToast('삭제 실패: ' + error.message, 'error'); return; }
+                showToast('녹화가 삭제되었습니다', 'success');
+                await loadRecordings();
+            } catch (e) {
+                console.error('Delete exception:', e);
+                hideLoading();
+                showToast('삭제 중 오류 발생', 'error');
+            }
+        }
+
+        function deleteRecordingFromCard(btn) {
+            const card = btn.closest('.recording-card');
+            const path = card.getAttribute('data-path');
+            deleteRecording(path);
+        }
+    </script>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('../service-worker.js')
+                    .then(reg => console.log('SW registered'))
+                    .catch(err => console.log('SW registration failed: ', err));
+            });
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>학습 완료 - TES Speaking</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="icon" type="image/png" sizes="32x32" href="../favicon.png">
+    <link rel="apple-touch-icon" href="../favicon.png">
+    <link rel="manifest" href="../manifest.json">
+    <style>
+        body { background: var(--bg-white); }
+
+        .complete-page {
+            min-height: 100dvh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .confetti-area {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            overflow: hidden;
+            z-index: 0;
+        }
+
+        .confetti-dot {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            border-radius: 2px;
+            animation: confettiFall linear forwards;
+        }
+
+        @keyframes confettiFall {
+            0%   { transform: translateY(-20px) rotate(0deg);   opacity: 1; }
+            100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+        }
+
+        .complete-scroll {
+            flex: 1;
+            overflow-y: auto;
+            padding: var(--sp-8) var(--sp-5) calc(80px + var(--safe-bottom));
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            gap: var(--sp-5);
+            position: relative;
+            z-index: 1;
+            min-height: calc(100dvh - 64px);
+        }
+
+        .complete-icon {
+            width: 96px;
+            height: 96px;
+            background: var(--accent-yellow-pale);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            animation: celebrate 0.6s var(--ease-spring) both;
+        }
+
+        @keyframes celebrate {
+            0%   { transform: scale(0) rotate(-15deg); opacity: 0; }
+            70%  { transform: scale(1.15) rotate(5deg); }
+            100% { transform: scale(1) rotate(0deg);   opacity: 1; }
+        }
+
+        .complete-title {
+            font-size: var(--text-3xl);
+            font-weight: 700;
+            color: var(--text-dark);
+            text-align: center;
+        }
+
+        .complete-subtitle {
+            color: var(--text-gray);
+            font-size: var(--text-base);
+            text-align: center;
+            margin-top: calc(-1 * var(--sp-3));
+        }
+
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--sp-3);
+            width: 100%;
+        }
+
+        .stat-box {
+            background: var(--bg-light);
+            border-radius: var(--radius-lg);
+            padding: var(--sp-4);
+            text-align: center;
+        }
+
+        .stat-box-value {
+            font-size: var(--text-2xl);
+            font-weight: 700;
+            color: var(--primary-dark);
+            line-height: 1;
+        }
+
+        .stat-box-label {
+            font-size: var(--text-xs);
+            color: var(--text-gray);
+            margin-top: var(--sp-1);
+        }
+
+        .achievement-banner {
+            width: 100%;
+            background: var(--bg-dark);
+            color: var(--text-white);
+            border-radius: var(--radius-xl);
+            padding: var(--sp-5);
+            display: flex;
+            align-items: center;
+            gap: var(--sp-4);
+        }
+
+        .achievement-banner-icon {
+            font-size: 2.25rem;
+            color: var(--accent-yellow);
+            flex-shrink: 0;
+        }
+
+        .achievement-banner-title {
+            font-weight: 700;
+            font-size: var(--text-lg);
+        }
+
+        .achievement-banner-desc {
+            font-size: var(--text-sm);
+            color: var(--primary-light);
+            margin-top: 2px;
+        }
+
+        .action-grid {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: var(--sp-3);
+            padding-bottom: var(--sp-2);
+        }
+
+        .action-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--sp-3);
+        }
+
+        .btn-large {
+            padding: var(--sp-5) var(--sp-8);
+            font-size: var(--text-lg);
+            min-height: 60px;
+        }
+
+        .action-row .btn {
+            min-height: 56px;
+            font-size: var(--text-base);
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Confetti -->
+    <div class="confetti-area" id="confettiArea"></div>
+
+    <div class="complete-page">
+        <div class="complete-scroll">
+            <!-- Icon -->
+            <div class="complete-icon">🎉</div>
+
+            <!-- Title -->
+            <div>
+                <h1 class="complete-title">학습 완료!</h1>
+                <p class="complete-subtitle">오늘도 열심히 공부했어요</p>
+            </div>
+
+            <!-- Stats -->
+            <div class="stats-row">
+                <div class="stat-box">
+                    <div class="stat-box-value" id="stepCount">4</div>
+                    <div class="stat-box-label">완료 단계</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-box-value" id="sentenceCount">0</div>
+                    <div class="stat-box-label">학습 문장</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-box-value" id="accuracyAvg">-</div>
+                    <div class="stat-box-label">평균 정확도</div>
+                </div>
+            </div>
+
+            <!-- Achievement -->
+            <div class="achievement-banner">
+                <div class="achievement-banner-icon"><i class="ti ti-trophy"></i></div>
+                <div>
+                    <div class="achievement-banner-title">오늘의 학습 완료!</div>
+                    <div class="achievement-banner-desc">꾸준히 하면 영어 실력이 늘어요</div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="action-grid">
+                <button class="btn btn-accent btn-block btn-large" onclick="shareRecording()">
+                    <i class="ti ti-share"></i> 녹화 공유
+                </button>
+                <div class="action-row">
+                    <button class="btn btn-outline" onclick="viewStats()">
+                        <i class="ti ti-chart-bar"></i> 통계
+                    </button>
+                    <button class="btn btn-secondary" onclick="goHome()">
+                        <i class="ti ti-home"></i> 홈으로
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav">
+            <a href="main.html" class="nav-item">
+                <span class="nav-icon"><i class="ti ti-home"></i></span>
+                <span>홈</span>
+            </a>
+            <a href="class.html" class="nav-item">
+                <span class="nav-icon"><i class="ti ti-books"></i></span>
+                <span>클래스</span>
+            </a>
+            <a href="stats.html" class="nav-item">
+                <span class="nav-icon"><i class="ti ti-chart-bar"></i></span>
+                <span>통계</span>
+            </a>
+            <a href="profile.html" class="nav-item">
+                <span class="nav-icon"><i class="ti ti-user"></i></span>
+                <span>프로필</span>
+            </a>
+        </nav>
+    </div>
+
+    <script src="../js/supabase.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const sentences = JSON.parse(sessionStorage.getItem('currentSentences')) || [];
+            const learningProgress = JSON.parse(sessionStorage.getItem('learningProgress')) || {};
+
+            document.getElementById('sentenceCount').textContent = sentences.length;
+            document.getElementById('stepCount').textContent = learningProgress.completedSteps || 4;
+
+            const scores = learningProgress.accuracyScores || [];
+            if (scores.length > 0) {
+                const avg = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+                document.getElementById('accuracyAvg').textContent = avg + '%';
+            }
+
+            const student = JSON.parse(sessionStorage.getItem('currentStudent'));
+            if (student) {
+                const today = new Date().toISOString().split('T')[0];
+                const key = `completion_${student.name}_${today}`;
+                const todayData = JSON.parse(localStorage.getItem(key) || '{"sentences":0,"sessions":0}');
+                todayData.sentences += sentences.length;
+                todayData.sessions += 1;
+                localStorage.setItem(key, JSON.stringify(todayData));
+
+                const currentUnit = JSON.parse(sessionStorage.getItem('currentUnit') || 'null');
+                const currentTextbook = JSON.parse(sessionStorage.getItem('currentTextbook') || 'null');
+                localStorage.setItem('lastLearning_' + student.name, JSON.stringify({
+                    unitTitle: currentUnit?.title || '학습',
+                    unitId: currentUnit?.id || null,
+                    textbookName: currentTextbook?.name || null,
+                    textbookId: currentTextbook?.id || null,
+                    timestamp: new Date().toISOString()
+                }));
+            }
+
+            spawnConfetti();
+        });
+
+        function spawnConfetti() {
+            const colors = ['#77CDD0', '#F47C5A', '#F5C248', '#1B7A84', '#A8E6E8'];
+            const area = document.getElementById('confettiArea');
+            for (let i = 0; i < 40; i++) {
+                const dot = document.createElement('div');
+                dot.className = 'confetti-dot';
+                dot.style.cssText = `
+                    left: ${Math.random() * 100}%;
+                    background: ${colors[Math.floor(Math.random() * colors.length)]};
+                    width: ${4 + Math.random() * 8}px;
+                    height: ${4 + Math.random() * 8}px;
+                    border-radius: ${Math.random() > 0.5 ? '50%' : '2px'};
+                    animation-duration: ${1.5 + Math.random() * 2}s;
+                    animation-delay: ${Math.random() * 0.8}s;
+                `;
+                area.appendChild(dot);
+            }
+        }
+
+        async function shareRecording() {
+            const recordingUrl = sessionStorage.getItem('recordingUrl');
+            if (!recordingUrl) { showToast('공유할 녹화가 없습니다', 'warning'); return; }
+            try {
+                const client = await getSupabase();
+                const student = JSON.parse(sessionStorage.getItem('currentStudent'));
+                const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+                let code = '';
+                for (let i = 0; i < 7; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+
+                if (client) {
+                    // Get script data from session
+                    let scriptEn = '', scriptKr = '';
+                    try {
+                        const sentences = JSON.parse(sessionStorage.getItem('currentSentences') || '[]');
+                        if (sentences.length > 0) {
+                            scriptEn = sentences.map(s => s.en || '').join('\n');
+                            scriptKr = sentences.map(s => s.kr || '').join('\n');
+                        }
+                    } catch (e) {}
+
+                    const { error } = await client.from('shared_links').insert([{
+                        code, video_url: recordingUrl,
+                        student_name: student?.name || '학생',
+                        recorded_at: new Date().toISOString(),
+                        script_en: scriptEn || null,
+                        script_kr: scriptKr || null
+                    }]);
+                    if (!error) {
+                        const shortUrl = `${window.location.origin}/pages/share-recording.html?c=${code}`;
+                        if (navigator.share) {
+                            navigator.share({ title: 'TES Speaking 녹화', text: '오늘의 스피킹 연습을 완료했어요!', url: shortUrl }).catch(() => {});
+                        } else {
+                            navigator.clipboard.writeText(shortUrl);
+                            showToast('짧은 링크가 복사되었습니다!', 'success');
+                        }
+                        return;
+                    }
+                }
+                if (navigator.share) {
+                    navigator.share({ title: 'TES Speaking 녹화', url: recordingUrl }).catch(() => {});
+                } else {
+                    navigator.clipboard.writeText(recordingUrl);
+                    showToast('링크가 복사되었습니다', 'success');
+                }
+            } catch (e) {
+                navigator.clipboard.writeText(sessionStorage.getItem('recordingUrl'));
+                showToast('링크가 복사되었습니다', 'success');
+            }
+        }
+
+        function viewStats() { window.location.href = 'stats.html'; }
+        function goHome() { window.location.href = 'main.html'; }
+    </script>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('../service-worker.js').then(() => {}).catch(() => {});
+            });
+        }
+    </script>
+</body>
+
+</html>
